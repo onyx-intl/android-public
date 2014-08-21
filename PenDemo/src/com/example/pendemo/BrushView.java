@@ -121,16 +121,12 @@ public class BrushView extends SurfaceView {
                 case MotionEvent.ACTION_MOVE:
                     if ((BrushManager.TYPE_EDIT == mEditType)
                             || (BrushManager.TYPE_ERASE == mEditType)) {
-                        if (event.getX() > getLeft() && event.getY() > getTop()) {
-                            mBrushManager.touchMove(event);
-                        }
+                        mBrushManager.touchMove(event);
                     }
                     break;
                 case MotionEvent.ACTION_UP:
                     if (BrushManager.TYPE_EDIT == mEditType) {
-                        if (event.getX() > getLeft() && event.getY() > getTop()) {
-                            mBrushManager.touchUp(event);
-                        }
+                        mBrushManager.touchUp(event);
                         mEditType = BrushManager.TYPE_EDIT;
                         mBrushManager.setEdit();
                     }
