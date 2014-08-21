@@ -4,6 +4,7 @@ package com.example.pendemo;
 import android.graphics.*;
 import com.onyx.android.sdk.device.DeviceInfo;
 import com.onyx.android.sdk.device.EpdController;
+import com.onyx.android.sdk.ui.data.ScribbleFactory;
 
 import android.os.Build;
 import android.os.Handler;
@@ -12,6 +13,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.RelativeLayout;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -60,6 +62,8 @@ public class BrushManager {
     private boolean mWriteFlage = false;
 
     private Handler mHander;
+    private NoteDetailActivity mActivity;
+    boolean scribbleInterruptedBecauseOutOfRegion=false;
 
     public BrushManager(View mainView) {
         super();
@@ -226,7 +230,7 @@ public class BrushManager {
             }
         }
         pointList.add(new PointF(event.getX(), event.getY()));
-/*
+        /*
         // draw in repaint, don't draw here. collect these points.
         mPath.reset();
         mPath.moveTo(event.getX(), event.getY());
@@ -242,17 +246,31 @@ public class BrushManager {
 
     public void touchMove(MotionEvent event) {
         mWriteFlage = true;
+        //Todo use rawX to fix right boundary still drawing problem.
+        if (!mActivity.updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
+            scribbleInterruptedBecauseOutOfRegion = true;
+            return;
+        }
         if (Build.MODEL.contains(RefreshManager.MODEL_WENSHI)) {
             float dst[] = mapPoint(event.getX(), event.getY());
             if (mEditType == BrushManager.TYPE_EDIT) {
-                int n = event.getHistorySize();
-                for (int i = 0; i < n; i++) {
+                if (scribbleInterruptedBecauseOutOfRegion) {
+                    scribbleInterruptedBecauseOutOfRegion=false;
+                    EpdController.finishStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
+                            event.getSize(), event.getEventTime());
+                    EpdController.enablePost(mMainView, 0);
+                    EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
+                            event.getSize(), event.getEventTime());
+                    return;
+                }else {
+                    int n = event.getHistorySize();
+                    for (int i = 0; i < n; i++) {
+                        EpdController.addStrokePoint(mPaintWidth, dst[0], dst[1], event.getPressure(),
+                                event.getSize(), event.getEventTime());
+                    }
                     EpdController.addStrokePoint(mPaintWidth, dst[0], dst[1], event.getPressure(),
                             event.getSize(), event.getEventTime());
                 }
-                EpdController.addStrokePoint(mPaintWidth, dst[0], dst[1], event.getPressure(),
-                        event.getSize(), event.getEventTime());
-
             }
         }
         pointList.add(new PointF(event.getX(), event.getY()));
@@ -274,12 +292,14 @@ public class BrushManager {
         if (Build.MODEL.contains(RefreshManager.MODEL_WENSHI)) {
             float dst[] = mapPoint(event.getX(), event.getY());
             if (mEditType == BrushManager.TYPE_EDIT) {
-                EpdController.finishStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
-                        event.getSize(), event.getEventTime());
+                if (mActivity.updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
+                    EpdController.finishStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
+                            event.getSize(), event.getEventTime());
+                }
             }
         }
         pointList.add(new PointF(event.getX(), event.getY()));
-/*
+        /*
         mPath.lineTo(event.getX(), event.getY());
         mPath.reset();
         */
@@ -318,7 +338,6 @@ public class BrushManager {
         if (DEBUG) Log.d(TAG, "--->>>setEraser()");
 
         mEditType = TYPE_ERASE;
-
         mPaint.setAlpha(0);
         mPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
         mPaint.setStrokeWidth(mPaintWidth);
@@ -343,5 +362,9 @@ public class BrushManager {
     public void handWriting() {
         Canvas canvas = new Canvas(mTempBitmap);
         canvas.drawPath(mPath, mPaint);
+    }
+
+    public void setHostActivity(NoteDetailActivity mActivity) {
+        this.mActivity = mActivity;
     }
 }

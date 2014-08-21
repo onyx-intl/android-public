@@ -9,7 +9,7 @@ import android.os.Build;
 import android.view.View;
 
 public class RefreshManager {
-    public static final String MODEL_WENSHI = "I86";
+    public static final String MODEL_WENSHI = "E970B";
 
     // for activity refresh
     public static void onCreate(Activity activity) {

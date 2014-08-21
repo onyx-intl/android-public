@@ -1,16 +1,22 @@
 
 package com.example.pendemo;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Rect;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
+
+import com.onyx.android.sdk.ui.data.ScribbleFactory;
 
 /**
  * @Class Name : NoteDetailActivity
@@ -28,6 +34,7 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
 
     private Button mPaint;
     private Button mEraser;
+    private Rect surfaceViewScribbleRegion;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,10 +43,14 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
 
         initView();
         mBrushView.setEdit();
-
-        getActionBar().setDisplayShowHomeEnabled(false);
-        getActionBar().setHomeButtonEnabled(true);
-        getActionBar().setDisplayHomeAsUpEnabled(true);
+        BrushManager.getInstance().setHostActivity(this);
+        ActionBar actionBar=getActionBar();
+        if (actionBar!=null){
+            actionBar.setDisplayShowHomeEnabled(false);
+            actionBar.setHomeButtonEnabled(true);
+            actionBar.setDisplayHomeAsUpEnabled(true);
+        }
+        mBrushView.surfaceViewScribbleRegion=updateSurfaceViewScribbleRegion();
     }
 
     @Override
@@ -87,13 +98,14 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
             // 笔
             case R.id.bt_paint:
                 mBrushView.setEdit();
+                ScribbleFactory.singleton().setColor(getResources().getColor(android.R.color.black));
                 BrushManager.getInstance().resetPage(0, false);
                 break;
-
             // 橡皮
             case R.id.bt_eraser:
-                mBrushView.setEraser();
-                BrushManager.getInstance().resetPage(1, true);
+                mBrushView.setEdit();
+                ScribbleFactory.singleton().setColor(getResources().getColor(android.R.color.white));
+                BrushManager.getInstance().resetPage(0, false);
                 break;
 
             case R.id.bt_clear_all:
@@ -134,7 +146,7 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
         // 擦除
         else if (keyCode == KeyEvent.KEYCODE_CLEAR) {
             mBrushView.setEraser();
-            BrushManager.getInstance().resetPage(1, true);
+            ScribbleFactory.singleton().setColor(getResources().getColor(android.R.color.white));
             return true;
         } else if (keyCode == KeyEvent.KEYCODE_POWER) {
             BrushManager.getInstance().resetPage(1, false);
@@ -160,5 +172,11 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
     private boolean saveNoteBook() {
         Bitmap bitmap = mBrushView.getImgBitmap();
         return false;
+    }
+
+    public Rect updateSurfaceViewScribbleRegion() {
+        int top = mBrushView.getTop();
+        int bottom = mBrushView.getBottom();
+        return new Rect(mBrushView.getLeft(), top, mBrushView.getRight(), bottom);
     }
 }

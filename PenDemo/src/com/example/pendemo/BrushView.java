@@ -7,15 +7,17 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Rect;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.FloatMath;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.ListView;
 
-public class BrushView extends View {
+public class BrushView extends SurfaceView {
     private static final String TAG = BrushView.class.getSimpleName();
 
     private int mEditType = BrushManager.TYPE_DEFAULT;
@@ -32,6 +34,7 @@ public class BrushView extends View {
     private String mTeachMark;
 
     private ListView parentView;
+    public Rect surfaceViewScribbleRegion;
 
     public String getPathStr() {
         return mPathStr;
@@ -102,7 +105,6 @@ public class BrushView extends View {
         if (event.getPointerCount() > 1) {
             return false;
         }
-
         setParentScrollAble(false);
 
         if (mEditType != BrushManager.TYPE_DEFAULT) {
