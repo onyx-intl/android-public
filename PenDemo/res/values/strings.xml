@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">PenDemo</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="titleWork">HomeWork</string>
+    <string name="detail_pen">笔</string>
+    <string name="detail_eraser">橡皮</string>
+    <string name="detail_toolbox">工具箱</string>
+    <string name="detail_message">留言</string>
+    <string name="detail_submit">提交</string>
+    <string name="inputLeaveMsg">请输入留言内容</string>
+    <string name="commit_fail">提交失败</string>
+    <string name="commit_success">提交成功</string>
+    
+    <string name="no_data">未查询到相关数据！</string>
+</resources>
