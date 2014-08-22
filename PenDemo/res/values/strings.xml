@@ -16,4 +16,7 @@
     <string name="commit_success">提交成功</string>
     
     <string name="no_data">未查询到相关数据！</string>
+    <string name="line_3">线宽3</string>
+    <string name="line_5">线宽5</string>
+    <string name="line_7">线宽7</string>
 </resources>

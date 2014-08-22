@@ -17,7 +17,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.ListView;
 
-public class BrushView extends SurfaceView {
+public class BrushView extends View {
     private static final String TAG = BrushView.class.getSimpleName();
 
     private int mEditType = BrushManager.TYPE_DEFAULT;
@@ -106,31 +106,17 @@ public class BrushView extends SurfaceView {
             return false;
         }
         setParentScrollAble(false);
-
         if (mEditType != BrushManager.TYPE_DEFAULT) {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_POINTER_DOWN:
                     distance(event);
                     break;
-                case MotionEvent.ACTION_DOWN:
-                    if ((BrushManager.TYPE_EDIT == mEditType)
-                            || (BrushManager.TYPE_ERASE == mEditType)) {
-                        mBrushManager.touchDown(event);
+                default:
+                    if (mEditType==BrushManager.TYPE_EDIT){
+                        BrushManager.getInstance().scribbleProcess(event);
+                    }else {
+                        BrushManager.getInstance().eraseProcess(event);
                     }
-                    break;
-                case MotionEvent.ACTION_MOVE:
-                    if ((BrushManager.TYPE_EDIT == mEditType)
-                            || (BrushManager.TYPE_ERASE == mEditType)) {
-                        mBrushManager.touchMove(event);
-                    }
-                    break;
-                case MotionEvent.ACTION_UP:
-                    if (BrushManager.TYPE_EDIT == mEditType) {
-                        mBrushManager.touchUp(event);
-                        mEditType = BrushManager.TYPE_EDIT;
-                        mBrushManager.setEdit();
-                    }
-                    mNewBitma = this.getCurrentBitmap();
                     break;
             }
             return true;

@@ -125,7 +125,43 @@
             android:text="quit"
             android:textColor="@color/black"/>
 
-            
+        <Button
+            android:id="@+id/bt_line_3"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dip"
+            android:onClick="onClick"
+            android:text="@string/line_3"
+            android:textColor="@color/black" />
+
+        <Button
+            android:id="@+id/bt_line_5"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dip"
+            android:onClick="onClick"
+            android:text="@string/line_5"
+            android:textColor="@color/black" />
+
+        <Button
+            android:id="@+id/bt_line_7"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dip"
+            android:onClick="onClick"
+            android:text="@string/line_7"
+            android:textColor="@color/black" />
+
+        <Button
+            android:id="@+id/bt_test_canvas_redraw"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dip"
+            android:onClick="onClick"
+            android:text="redraw"
+            android:textColor="@color/black" />
+
+
     </LinearLayout>
 
 </LinearLayout>
