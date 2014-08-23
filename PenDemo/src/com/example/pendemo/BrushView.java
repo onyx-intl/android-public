@@ -135,9 +135,9 @@ public class BrushView extends SurfaceView {
                     break;
                 default:
                     if (mEditType==BrushManager.TYPE_EDIT){
-                        BrushManager.getInstance().scribbleProcess(mContext,event,getHolder());
+                        BrushManager.getInstance().scribbleProcess(mContext,event);
                     }else {
-                        BrushManager.getInstance().eraseProcess(mContext,event,getHolder());
+                        BrushManager.getInstance().eraseProcess(mContext,event);
                     }
                     break;
             }

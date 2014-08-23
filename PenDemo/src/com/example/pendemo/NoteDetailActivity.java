@@ -109,7 +109,6 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
 
     @Override
     public void onClick(View v) {
-        flushPendingPost();
         switch (v.getId()) {
             case R.id.bt_commit:
                 BrushManager.getInstance().resetPage(1, true);
@@ -130,10 +129,14 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
                 BrushManager.getInstance().resetPage(0, false);
                 break;
             case R.id.bt_clear_all:
+                BrushManager.getInstance().deletePage(NoteDetailActivity.this);
                 BrushManager.getInstance().clear();
                 mBrushView.cancelEdit();
                 mBrushView.clearBitmapEdit();
                 mBrushView.setEdit();
+                Canvas canvas=mBrushView.getHolder().lockCanvas();
+                canvas.drawColor(Color.WHITE);
+                mBrushView.getHolder().unlockCanvasAndPost(canvas);
                 break;
             case R.id.bt_save:
                 saveNoteBook();
@@ -261,13 +264,4 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
         }
     }
 
-    private void flushPendingPost(){
-        Paint paint = new Paint();
-        paint.setColor(Color.BLACK);
-        paint.setStrokeWidth(3);
-        Canvas tempCanvas=mBrushView.getHolder().lockCanvas();
-        tempCanvas.drawColor(Color.WHITE);
-        BrushManager.getInstance().paintScribbles(NoteDetailActivity.this,tempCanvas,paint);
-        mBrushView.getHolder().unlockCanvasAndPost(tempCanvas);
-    }
 }
