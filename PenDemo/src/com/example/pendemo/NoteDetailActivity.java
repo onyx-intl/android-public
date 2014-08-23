@@ -156,9 +156,6 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
             case R.id.bt_line_7:
                 BrushManager.getInstance().setmPaintWidth(7);
                 break;
-            case R.id.bt_test_canvas_redraw:
-                startActivity(new Intent(NoteDetailActivity.this,testActivity.class));
-                break;
             default:
                 break;
         }

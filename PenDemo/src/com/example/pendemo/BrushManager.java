@@ -451,8 +451,8 @@ public class BrushManager {
         canvas.drawPath(mPath, mPaint);
     }
 
-    public void setHostActivity(NoteDetailActivity mActivity) {
-        this.mActivity = mActivity;
+    public void setHostActivity(NoteDetailActivity activity) {
+        this.mActivity = activity;
     }
 
     public void saveScribbles(Context context, String md5) {
@@ -526,8 +526,13 @@ public class BrushManager {
         for (OnyxScribble scribble :scribbleList){
             ArrayList<OnyxScribblePoint> tempPoints=scribble.getPoints();
             for (int i = 0; i < tempPoints.size() - 1; i++) {
-                paint.setStrokeWidth(tempPoints.get(i).getSize());
-                canvas.drawLine(tempPoints.get(i).getX(), tempPoints.get(i).getY(),
+                if (tempPoints.get(i).getSize()==0){
+                    paint.setStrokeWidth(20);
+                    paint.setColor(Color.WHITE);
+                }else {
+                    paint.setStrokeWidth(tempPoints.get(i).getSize());
+                    paint.setColor(Color.BLACK);
+                }canvas.drawLine(tempPoints.get(i).getX(), tempPoints.get(i).getY(),
                         tempPoints.get(i + 1).getX(), tempPoints.get(i + 1).getY(), paint);
             }
         }

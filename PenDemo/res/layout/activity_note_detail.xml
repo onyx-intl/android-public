@@ -151,16 +151,6 @@
             android:text="@string/line_7"
             android:textColor="@color/black" />
 
-        <Button
-            android:id="@+id/bt_test_canvas_redraw"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dip"
-            android:onClick="onClick"
-            android:text="redraw"
-            android:textColor="@color/black" />
-
-
     </LinearLayout>
 
 </LinearLayout>
