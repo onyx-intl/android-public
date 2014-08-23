@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.Rect;
 import android.text.TextUtils;
 import android.util.AttributeSet;
@@ -25,7 +26,7 @@ public class BrushView extends SurfaceView {
     private int mWidth;
     private int mHeight;
 
-    private Bitmap mBitmapEdit; // 临时画布中的临时图片
+    private Bitmap mBitmapEdit = null; // 临时画布中的临时图片
     private Bitmap mNewBitma;
     private Context mContext;
     private String mPathStr;
@@ -35,18 +36,21 @@ public class BrushView extends SurfaceView {
     private String mTeachMark;
 
     private ListView parentView;
-    public Rect surfaceViewScribbleRegion;
+    public Rect surfaceViewScribbleRegion=null;
 
     public String getPathStr() {
         return mPathStr;
     }
 
+    public Bitmap getmBitmapEdit() {
+        return mBitmapEdit;
+    }
+
     public void setPathStr(String pathStr) {
         this.mPathStr = pathStr;
         if (!TextUtils.isEmpty(mPathStr)) {
-            mBitmapEdit = BitmapFactory.decodeFile(mPathStr);
+            mBitmapEdit = BitmapFactory.decodeFile(pathStr);
         }
-        // mBrushManager.setBitmap(pathStr);
     }
 
     public BrushView(Context context) {
@@ -69,14 +73,22 @@ public class BrushView extends SurfaceView {
             @Override
             public void surfaceCreated(SurfaceHolder holder) {
                 Canvas canvas = holder.lockCanvas();
-                canvas.drawColor(Color.WHITE);
+                if (mBitmapEdit==null){
+                    canvas.drawColor(Color.WHITE);
+                }else {
+                    canvas.drawBitmap(mBitmapEdit,0,0,null);
+                }
                 holder.unlockCanvasAndPost(canvas);
             }
 
             @Override
             public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
                 Canvas canvas = holder.lockCanvas();
-                canvas.drawColor(Color.WHITE);
+                if (mBitmapEdit==null){
+                    canvas.drawColor(Color.WHITE);
+                }else {
+                    canvas.drawBitmap(mBitmapEdit,0,0,null);
+                }
                 holder.unlockCanvasAndPost(canvas);
             }
 

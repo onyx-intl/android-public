@@ -9,6 +9,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Environment;
@@ -56,19 +57,17 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_note_detail);
-
         initView();
         mBrushView.setEdit();
         mBrushView.setDrawingCacheEnabled(true);
         mBrushView.buildDrawingCache(true);
-        BrushManager.getInstance().setHostActivity(this);
+        BrushManager.getInstance().setContext(this);
         ActionBar actionBar=getActionBar();
         if (actionBar!=null){
             actionBar.setDisplayShowHomeEnabled(false);
             actionBar.setHomeButtonEnabled(true);
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
-        mBrushView.surfaceViewScribbleRegion=updateSurfaceViewScribbleRegion();
         EpdController.setStrokeStyle(Color.BLACK);
         BrushManager.getInstance().prepareScribbles(this,BrushManager.FAKE_MD5);
     }
@@ -132,10 +131,13 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
                 BrushManager.getInstance().deletePage(NoteDetailActivity.this);
                 BrushManager.getInstance().clear();
                 mBrushView.cancelEdit();
-                mBrushView.clearBitmapEdit();
                 mBrushView.setEdit();
                 Canvas canvas=mBrushView.getHolder().lockCanvas();
-                canvas.drawColor(Color.WHITE);
+                if (mBrushView.getmBitmapEdit()==null){
+                    canvas.drawColor(Color.WHITE);
+                }else {
+                    canvas.drawBitmap(mBrushView.getmBitmapEdit(),0,0,null);
+                }
                 mBrushView.getHolder().unlockCanvasAndPost(canvas);
                 break;
             case R.id.bt_save:
@@ -210,7 +212,7 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
         final Bitmap baseBitmap = Bitmap.createBitmap(825,1200, Bitmap.Config.ARGB_8888);
         Canvas tempCanvas=new Canvas(baseBitmap);
         tempCanvas.drawColor(Color.WHITE);
-        BrushManager.getInstance().paintScribbles(NoteDetailActivity.this,tempCanvas,paint);
+        BrushManager.getInstance().paintScribbles(NoteDetailActivity.this, tempCanvas, paint);
         File saveFile = new File(Environment.getExternalStorageDirectory() + "/DCIM/test"+BrushManager.getInstance().currentPage+ ".png");
         if (!saveFile.exists()){
             try {
@@ -229,12 +231,6 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
             e.printStackTrace();
         }
         return false;
-    }
-
-    public Rect updateSurfaceViewScribbleRegion() {
-        int top = mBrushView.getTop();
-        int bottom = mBrushView.getBottom();
-        return new Rect(mBrushView.getLeft(), top, mBrushView.getRight(), bottom);
     }
 
     private boolean execCommand(String cmd) {

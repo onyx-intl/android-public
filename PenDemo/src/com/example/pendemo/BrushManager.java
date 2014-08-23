@@ -52,7 +52,7 @@ public class BrushManager {
 
     private static BrushManager sInstance;
     private boolean mEnableWakeLock;
-    private SurfaceView mMainView;
+    private BrushView mMainView;
 
     private Matrix mMapMatrix;
 
@@ -81,7 +81,7 @@ public class BrushManager {
     private boolean mWriteFlage = false;
 
     private Handler mHandler;
-    private NoteDetailActivity mActivity;
+    private Context mContext;
     boolean scribbleInterruptedBecauseOutOfRegion=false;
     public int currentPage = new Random().nextInt(1000);
     private int pageCount = 1;
@@ -91,7 +91,7 @@ public class BrushManager {
     private long uptime=0;
     private long downtime=0;
 
-    public BrushManager(SurfaceView mainView) {
+    public BrushManager(BrushView mainView) {
         super();
 
         mMainView = mainView;
@@ -257,13 +257,13 @@ public class BrushManager {
                     EpdController.enterScribbleMode(mMainView);
                     point.setSize(EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                             event.getSize(), event.getEventTime()));
-                    startScribble(mActivity,currentPage,pageScale,0,0,point);
+                    startScribble(mContext,currentPage,pageScale,0,0,point);
                     pointList.add(new PointF(event.getX(), event.getY()));
                     break;
                 case MotionEvent.ACTION_MOVE:
                     mWriteFlage = true;
                     //Todo use rawX to fix right boundary still drawing problem.
-                    if (!mActivity.updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
+                    if (!updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
                         scribbleInterruptedBecauseOutOfRegion = true;
                         return;
                     }
@@ -275,7 +275,7 @@ public class BrushManager {
                         EpdController.enablePost(mMainView, 0);
                         point.setSize(EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                                 event.getSize(), event.getEventTime()));
-                        startScribble(mActivity,currentPage,pageScale,0,0,point);
+                        startScribble(mContext,currentPage,pageScale,0,0,point);
                         return;
                     } else {
                         int n = event.getHistorySize();
@@ -298,7 +298,7 @@ public class BrushManager {
                     if (DEBUG) Log.d(TAG, "--->>>touchUp()");
                     uptime=event.getEventTime();
                     if (mEditType == BrushManager.TYPE_EDIT) {
-                        if (mActivity.updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
+                        if (updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
                             EpdController.finishStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                                     event.getSize(), event.getEventTime());
                         }
@@ -333,13 +333,13 @@ public class BrushManager {
                     EpdController.enterScribbleMode(mMainView);
                     EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                             event.getSize(), event.getEventTime());
-                    startScribble(mActivity,currentPage,pageScale,0,0,OnyxScribblePoint.fromEvent(event));
+                    startScribble(mContext,currentPage,pageScale,0,0,OnyxScribblePoint.fromEvent(event));
                     pointList.add(new PointF(event.getX(), event.getY()));
                     break;
                 case MotionEvent.ACTION_MOVE:
                     mWriteFlage = true;
                     //Todo: use rawX to fix right boundary still drawing problem.
-                    if (!mActivity.updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
+                    if (!updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
                         scribbleInterruptedBecauseOutOfRegion = true;
                         return;
                     }
@@ -350,7 +350,7 @@ public class BrushManager {
                         EpdController.enablePost(mMainView, 0);
                         EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                                 event.getSize(), event.getEventTime());
-                        startScribble(mActivity,currentPage,pageScale,0,0,OnyxScribblePoint.fromEvent(event));
+                        startScribble(mContext,currentPage,pageScale,0,0,OnyxScribblePoint.fromEvent(event));
                         return;
                     } else {
                         int n = event.getHistorySize();
@@ -371,7 +371,7 @@ public class BrushManager {
                     if (DEBUG) Log.d(TAG, "--->>>touchUp()");
                     uptime=event.getEventTime();
                     if (mEditType == BrushManager.TYPE_EDIT) {
-                        if (mActivity.updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
+                        if (updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
                             EpdController.finishStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                                     event.getSize(), event.getEventTime());
                         }
@@ -451,8 +451,8 @@ public class BrushManager {
         canvas.drawPath(mPath, mPaint);
     }
 
-    public void setHostActivity(NoteDetailActivity activity) {
-        this.mActivity = activity;
+    public void setContext(Context context) {
+        this.mContext = context;
     }
 
     public void saveScribbles(Context context, String md5) {
@@ -543,7 +543,11 @@ public class BrushManager {
         paint.setColor(Color.BLACK);
         paint.setStrokeWidth(3);
         Canvas tempCanvas=mMainView.getHolder().lockCanvas();
-        tempCanvas.drawColor(Color.WHITE);
+        if (mMainView.getmBitmapEdit()==null){
+            tempCanvas.drawColor(Color.WHITE);
+        }else {
+            tempCanvas.drawBitmap(mMainView.getmBitmapEdit(),0,0,null);
+        }
         BrushManager.getInstance().paintScribbles(context,tempCanvas,paint);
         mMainView.getHolder().unlockCanvasAndPost(tempCanvas);
     }
@@ -565,9 +569,15 @@ public class BrushManager {
     }
 
     public void deletePage(Context context) {
-            List<OnyxScribble> list = loadScribblesOfPosition(context, FAKE_MD5, String.valueOf(BrushManager.getInstance().currentPage));
-            for (OnyxScribble s : list) {
-                OnyxCmsCenter.deleteScribble(context, s);
-            }
+        List<OnyxScribble> list = loadScribblesOfPosition(context, FAKE_MD5, String.valueOf(currentPage));
+        for (OnyxScribble s : list) {
+            OnyxCmsCenter.deleteScribble(context, s);
+        }
+    }
+
+    public Rect updateSurfaceViewScribbleRegion() {
+        int top = mMainView.getTop();
+        int bottom = mMainView.getBottom();
+        return new Rect(mMainView.getLeft(), top, mMainView.getRight(), bottom);
     }
 }
