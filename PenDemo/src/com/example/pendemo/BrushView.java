@@ -13,11 +13,12 @@ import android.util.AttributeSet;
 import android.util.FloatMath;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.ListView;
 
-public class BrushView extends View {
+public class BrushView extends SurfaceView {
     private static final String TAG = BrushView.class.getSimpleName();
 
     private int mEditType = BrushManager.TYPE_DEFAULT;
@@ -26,7 +27,7 @@ public class BrushView extends View {
 
     private Bitmap mBitmapEdit; // 临时画布中的临时图片
     private Bitmap mNewBitma;
-
+    private Context mContext;
     private String mPathStr;
 
     private BrushManager mBrushManager;
@@ -50,22 +51,43 @@ public class BrushView extends View {
 
     public BrushView(Context context) {
         super(context);
-        initialize();
+        initialize(context);
     }
 
     public BrushView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        initialize();
+        initialize(context);
     }
 
     public BrushView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        initialize();
+        initialize(context);
     }
 
-    public void initialize() {
+    public void initialize(Context context) {
+        getHolder().addCallback(new SurfaceHolder.Callback() {
+            @Override
+            public void surfaceCreated(SurfaceHolder holder) {
+                Canvas canvas = holder.lockCanvas();
+                canvas.drawColor(Color.WHITE);
+                holder.unlockCanvasAndPost(canvas);
+            }
+
+            @Override
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+                Canvas canvas = holder.lockCanvas();
+                canvas.drawColor(Color.WHITE);
+                holder.unlockCanvasAndPost(canvas);
+            }
+
+            @Override
+            public void surfaceDestroyed(SurfaceHolder holder) {
+
+            }
+        });
         mBrushManager = new BrushManager(this);
         mBrushManager.initBrush(3, Color.BLACK, true);
+        mContext=context;
     }
 
     @Override
@@ -113,9 +135,9 @@ public class BrushView extends View {
                     break;
                 default:
                     if (mEditType==BrushManager.TYPE_EDIT){
-                        BrushManager.getInstance().scribbleProcess(event);
+                        BrushManager.getInstance().scribbleProcess(mContext,event,getHolder());
                     }else {
-                        BrushManager.getInstance().eraseProcess(event);
+                        BrushManager.getInstance().eraseProcess(mContext,event,getHolder());
                     }
                     break;
             }

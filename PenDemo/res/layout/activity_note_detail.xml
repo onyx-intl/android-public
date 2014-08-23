@@ -37,10 +37,9 @@
 
     <com.example.pendemo.BrushView
         android:id="@+id/note_detail_brushview"
-        android:layout_width="fill_parent"
+        android:layout_width="0dp"
         android:layout_height="fill_parent"
         android:layout_weight="1"
-        android:background="@drawable/shape"
         android:focusable="false" >
     </com.example.pendemo.BrushView>
 

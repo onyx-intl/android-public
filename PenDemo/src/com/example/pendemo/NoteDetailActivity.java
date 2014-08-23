@@ -109,8 +109,8 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
 
     @Override
     public void onClick(View v) {
+        flushPendingPost();
         switch (v.getId()) {
-
             case R.id.bt_commit:
                 BrushManager.getInstance().resetPage(1, true);
                 saveNoteBook();
@@ -205,10 +205,12 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
     private boolean saveNoteBook() {
         BrushManager.getInstance().saveScribbles(this,BrushManager.FAKE_MD5);
         Paint paint = new Paint();
+        paint.setColor(Color.BLACK);
+        paint.setStrokeWidth(3);
         final Bitmap baseBitmap = Bitmap.createBitmap(825,1200, Bitmap.Config.ARGB_8888);
         Canvas tempCanvas=new Canvas(baseBitmap);
         tempCanvas.drawColor(Color.WHITE);
-        paintScribbles(tempCanvas,paint);
+        BrushManager.getInstance().paintScribbles(NoteDetailActivity.this,tempCanvas,paint);
         File saveFile = new File(Environment.getExternalStorageDirectory() + "/DCIM/test"+BrushManager.getInstance().currentPage+ ".png");
         if (!saveFile.exists()){
             try {
@@ -259,17 +261,13 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
         }
     }
 
-    private void paintScribbles(Canvas canvas,Paint paint) {
-        ArrayList<OnyxScribble> scribbleList=BrushManager.getInstance().loadScribblesOfPosition(NoteDetailActivity.this,
-                BrushManager.FAKE_MD5,
-                String.valueOf(BrushManager.getInstance().currentPage));
-        for (OnyxScribble scribble :scribbleList){
-            ArrayList<OnyxScribblePoint> tempPoints=scribble.getPoints();
-            for (int i = 0; i < tempPoints.size() - 1; i++) {
-                paint.setStrokeWidth(tempPoints.get(i).getSize());
-                canvas.drawLine(tempPoints.get(i).getX(), tempPoints.get(i).getY(),
-                        tempPoints.get(i + 1).getX(), tempPoints.get(i + 1).getY(), paint);
-            }
-        }
+    private void flushPendingPost(){
+        Paint paint = new Paint();
+        paint.setColor(Color.BLACK);
+        paint.setStrokeWidth(3);
+        Canvas tempCanvas=mBrushView.getHolder().lockCanvas();
+        tempCanvas.drawColor(Color.WHITE);
+        BrushManager.getInstance().paintScribbles(NoteDetailActivity.this,tempCanvas,paint);
+        mBrushView.getHolder().unlockCanvasAndPost(tempCanvas);
     }
 }

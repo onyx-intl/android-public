@@ -17,6 +17,7 @@ import android.os.PowerManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.SurfaceHolder;
 import android.view.View;
 
 import java.io.File;
@@ -231,7 +232,7 @@ public class BrushManager {
         return dst;
     }
 
-    public void scribbleProcess(MotionEvent event) {
+    public void scribbleProcess(Context context,MotionEvent event,SurfaceHolder holder) {
         if (Build.MODEL.contains(RefreshManager.MODEL_WENSHI)) {
             float dst[] = mapPoint(event.getX(), event.getY());
             OnyxScribblePoint point;
@@ -287,8 +288,10 @@ public class BrushManager {
                                     event.getSize(), event.getEventTime());
                         }
                     }
-//                    EpdController.leaveScribbleMode(mMainView);
+                    EpdController.resetViewUpdateMode(mMainView);
                     finishScribble(currentPage,FAKE_MD5);
+                    EpdController.leaveScribbleMode(mMainView);
+                    saveScribbles(context,FAKE_MD5);
                     pointList.add(new PointF(event.getX(), event.getY()));
                     break;
                 default:
@@ -298,13 +301,13 @@ public class BrushManager {
     }
 
 
-    public void eraseProcess(MotionEvent event) {
+    public void eraseProcess(Context context,MotionEvent event,SurfaceHolder holder) {
         if (Build.MODEL.contains(RefreshManager.MODEL_WENSHI)) {
             float dst[] = mapPoint(event.getX(), event.getY());
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
                     if (DEBUG) Log.d(TAG, "--->>>touchDown()");
-                    EpdController.enablePost(mMainView, 0);
+                    EpdController.enterScribbleMode(mMainView);
                     EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                             event.getSize(), event.getEventTime());
                     startScribble(mActivity,currentPage,pageScale,0,0,OnyxScribblePoint.fromEvent(event));
@@ -350,6 +353,9 @@ public class BrushManager {
                         }
                     }
                     finishScribble(currentPage,FAKE_MD5);
+                    EpdController.leaveScribbleMode(mMainView);
+                    EpdController.resetViewUpdateMode(mMainView);
+                    saveScribbles(context,FAKE_MD5);
                     setEdit();
                     pointList.add(new PointF(event.getX(), event.getY()));
                     break;
@@ -487,5 +493,19 @@ public class BrushManager {
             return scribbles;
         }
         return null;
+    }
+
+    public void paintScribbles(Context context,Canvas canvas,Paint paint) {
+        ArrayList<OnyxScribble> scribbleList=loadScribblesOfPosition(context,
+                BrushManager.FAKE_MD5,
+                String.valueOf(BrushManager.getInstance().currentPage));
+        for (OnyxScribble scribble :scribbleList){
+            ArrayList<OnyxScribblePoint> tempPoints=scribble.getPoints();
+            for (int i = 0; i < tempPoints.size() - 1; i++) {
+                paint.setStrokeWidth(tempPoints.get(i).getSize());
+                canvas.drawLine(tempPoints.get(i).getX(), tempPoints.get(i).getY(),
+                        tempPoints.get(i + 1).getX(), tempPoints.get(i + 1).getY(), paint);
+            }
+        }
     }
 }
