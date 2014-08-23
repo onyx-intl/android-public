@@ -6,7 +6,9 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Environment;
@@ -19,6 +21,8 @@ import android.widget.Button;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.onyx.android.sdk.data.cms.OnyxScribble;
+import com.onyx.android.sdk.data.cms.OnyxScribblePoint;
 import com.onyx.android.sdk.device.EpdController;
 import com.onyx.android.sdk.ui.data.ScribbleFactory;
 
@@ -28,6 +32,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 
 /**
  * @Class Name : NoteDetailActivity
@@ -198,42 +203,29 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
      * @return
      */
     private boolean saveNoteBook() {
-        Bitmap scribbleBitmap;
-        File temp =new File(Environment.getExternalStorageDirectory() + "/DCIM/temp" + ".png");
-        int[] viewLocation=new int[2];
-        mBrushView.getLocationOnScreen(viewLocation);
-        if (!temp.exists()){
+        BrushManager.getInstance().saveScribbles(this,BrushManager.FAKE_MD5);
+        Paint paint = new Paint();
+        final Bitmap baseBitmap = Bitmap.createBitmap(825,1200, Bitmap.Config.ARGB_8888);
+        Canvas tempCanvas=new Canvas(baseBitmap);
+        tempCanvas.drawColor(Color.WHITE);
+        paintScribbles(tempCanvas,paint);
+        File saveFile = new File(Environment.getExternalStorageDirectory() + "/DCIM/test"+BrushManager.getInstance().currentPage+ ".png");
+        if (!saveFile.exists()){
             try {
-                temp.createNewFile();
+                saveFile.createNewFile();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
-        String cmd = "screencap " + temp + " 90";
-        if (execCommand(cmd)){
-            scribbleBitmap=Bitmap.createBitmap(BitmapFactory.decodeFile(temp.getPath()),
-                    viewLocation[0],viewLocation[1],
-                    mBrushView.getMeasuredWidth(),mBrushView.getMeasuredHeight());
-            File saveFile = new File(Environment.getExternalStorageDirectory() + "/DCIM/test" + ".png");
-            if (!saveFile.exists()){
-                try {
-                    saveFile.createNewFile();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            try {
-                FileOutputStream iStream = new FileOutputStream(saveFile);
-                scribbleBitmap.compress(Bitmap.CompressFormat.PNG, 100, iStream);
-                iStream.close();
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        try {
+            FileOutputStream iStream = new FileOutputStream(saveFile);
+            baseBitmap.compress(Bitmap.CompressFormat.PNG, 100, iStream);
+            iStream.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
-
         return false;
     }
 
@@ -264,6 +256,20 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
         } catch (Throwable tr) {
             Log.w(TAG, tr);
             return false;
+        }
+    }
+
+    private void paintScribbles(Canvas canvas,Paint paint) {
+        ArrayList<OnyxScribble> scribbleList=BrushManager.getInstance().loadScribblesOfPosition(NoteDetailActivity.this,
+                BrushManager.FAKE_MD5,
+                String.valueOf(BrushManager.getInstance().currentPage));
+        for (OnyxScribble scribble :scribbleList){
+            ArrayList<OnyxScribblePoint> tempPoints=scribble.getPoints();
+            for (int i = 0; i < tempPoints.size() - 1; i++) {
+                paint.setStrokeWidth(tempPoints.get(i).getSize());
+                canvas.drawLine(tempPoints.get(i).getX(), tempPoints.get(i).getY(),
+                        tempPoints.get(i + 1).getX(), tempPoints.get(i + 1).getY(), paint);
+            }
         }
     }
 }

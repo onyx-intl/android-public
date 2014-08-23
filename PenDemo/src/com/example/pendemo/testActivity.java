@@ -64,7 +64,7 @@ public class testActivity extends Activity {
                     e.printStackTrace();
                 } catch (IOException e) {
                     e.printStackTrace();
-                };
+                }
             }
         });
     }

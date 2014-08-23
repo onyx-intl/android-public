@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Control brush line
@@ -78,7 +79,7 @@ public class BrushManager {
     private Handler mHandler;
     private NoteDetailActivity mActivity;
     boolean scribbleInterruptedBecauseOutOfRegion=false;
-    private int currentPage = 1;
+    public int currentPage = new Random().nextInt(1000);
     private int pageCount = 1;
     private float pageScale = 1.0f;
     private Point pageTranslate = new Point();
@@ -115,7 +116,6 @@ public class BrushManager {
 
         if (Build.MODEL.contains(RefreshManager.MODEL_WENSHI)) {
             mPaintWidth = defaultPaintWidth;
-            DeviceInfo.currentDevice.enterScribbleMode(mMainView);
             mPaint.setStrokeWidth(mPaintWidth);
 
             mMapMatrix.postRotate(270);
@@ -239,7 +239,7 @@ public class BrushManager {
                 case MotionEvent.ACTION_DOWN:
                     if (DEBUG) Log.d(TAG, "--->>>touchDown()");
                     point=OnyxScribblePoint.fromEvent(event);
-                    EpdController.enablePost(mMainView, 0);
+                    EpdController.enterScribbleMode(mMainView);
                     point.setSize(EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                             event.getSize(), event.getEventTime()));
                     startScribble(mActivity,currentPage,pageScale,0,0,point);
@@ -287,6 +287,7 @@ public class BrushManager {
                                     event.getSize(), event.getEventTime());
                         }
                     }
+//                    EpdController.leaveScribbleMode(mMainView);
                     finishScribble(currentPage,FAKE_MD5);
                     pointList.add(new PointF(event.getX(), event.getY()));
                     break;
@@ -477,8 +478,6 @@ public class BrushManager {
         currentScribble = null;
 
         OnyxCmsCenter.getScribblePositions(context, context.getPackageName(), md5, scribblePositionsInDb);
-        Log.e("test","list Size"+loadScribblesOfPosition(context,md5,"0").size());
-        Log.e("test","save Size"+scribblePositionsInDb.size());
     }
 
     public ArrayList<OnyxScribble> loadScribblesOfPosition(Context context, String md5, String position) {
