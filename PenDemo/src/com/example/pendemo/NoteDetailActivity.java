@@ -117,14 +117,14 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
             case R.id.bt_paint:
                 mBrushView.setEdit();
                 EpdController.setStrokeStyle(Color.BLACK);
-                BrushManager.getInstance().setmPaintWidth(3);
+                BrushManager.getInstance().setmPaintWidth(BooxUtil.penDefaultWidth);
                 BrushManager.getInstance().resetPage(0, false);
                 break;
             // 橡皮
             case R.id.bt_eraser:
                 mBrushView.setEraser();
                 EpdController.setStrokeStyle(Color.WHITE);
-                BrushManager.getInstance().setmPaintWidth(20);
+                BrushManager.getInstance().setmPaintWidth(BooxUtil.eraseDefaultWidth);
                 BrushManager.getInstance().resetPage(0, false);
                 break;
             case R.id.bt_clear_all:
@@ -173,14 +173,14 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
         // 编辑
         if (keyCode == KeyEvent.KEYCODE_BUTTON_START) {
             mBrushView.setEdit();
-            BrushManager.getInstance().setmPaintWidth(3);
+            BrushManager.getInstance().setmPaintWidth(BooxUtil.penDefaultWidth);
             EpdController.setStrokeStyle(Color.BLACK);
             return true;
         }
         // 擦除
         else if (keyCode == KeyEvent.KEYCODE_CLEAR) {
             mBrushView.setEraser();
-            BrushManager.getInstance().setmPaintWidth(20);
+            BrushManager.getInstance().setmPaintWidth(BooxUtil.eraseDefaultWidth);
             EpdController.setStrokeStyle(Color.WHITE);
             return true;
         } else if (keyCode == KeyEvent.KEYCODE_POWER) {

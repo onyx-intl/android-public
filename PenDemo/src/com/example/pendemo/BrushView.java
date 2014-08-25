@@ -98,7 +98,7 @@ public class BrushView extends SurfaceView {
             }
         });
         mBrushManager = new BrushManager(this);
-        mBrushManager.initBrush(3, Color.BLACK, true);
+        mBrushManager.initBrush(BooxUtil.penDefaultWidth, Color.BLACK, true);
         mContext=context;
     }
 

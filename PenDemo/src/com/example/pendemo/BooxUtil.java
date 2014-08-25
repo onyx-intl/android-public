@@ -10,6 +10,9 @@ import android.view.View;
 
 public class BooxUtil {
 
+    public static int penDefaultWidth=3;
+    public static int eraseDefaultWidth=20;
+
     public static void activityGCUpdate(final Activity activity, final int delay) {
         if (!Build.MODEL.contains(RefreshManager.MODEL_WENSHI)) {
             return;
