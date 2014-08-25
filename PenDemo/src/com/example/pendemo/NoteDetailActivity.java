@@ -22,13 +22,14 @@ import android.widget.TextView;
 public class NoteDetailActivity extends Activity implements OnClickListener {
     private static final String TAG = NoteDetailActivity.class.getSimpleName();
 
+    BrushView mBrushView = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_note_detail);
         initView();
         BrushManager.getInstance().setEdit();
-        BrushManager.getInstance().setContext(this);
         ActionBar actionBar=getActionBar();
         if (actionBar!=null){
             actionBar.setDisplayShowHomeEnabled(false);
@@ -37,6 +38,8 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
         }
         BrushManager.getInstance().setStrokeColor(Color.BLACK);
         BrushManager.getInstance().prepareScribbles(this,BrushManager.FAKE_MD5);
+
+        mBrushView.setPathStr("/sdcard/DCIM/snapshot_20140825_221143.png");
     }
 
     @Override
@@ -57,11 +60,11 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
     }
 
     public void initView() {
+        mBrushView = (BrushView) findViewById(R.id.note_detail_brushview);
         Button mPaint = (Button) findViewById(R.id.bt_paint);
         Button mEraser = (Button) findViewById(R.id.bt_eraser);
         Button clearAll = (Button) findViewById(R.id.bt_clear_all);
         TextView mHomeworkName = (TextView) findViewById(R.id.homeWorkRbn);
-        BrushView mBrushView = (BrushView) findViewById(R.id.note_detail_brushview);
         Button mCommit = (Button) findViewById(R.id.bt_commit);
         Button mLeaveMsg = (Button) findViewById(R.id.bt_leavemsg);
         mCommit.setOnClickListener(this);
@@ -82,15 +85,11 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
             // 笔
             case R.id.bt_paint:
                 BrushManager.getInstance().setEdit();
-                BrushManager.getInstance().setStrokeColor(Color.BLACK);
-                BrushManager.getInstance().setStrokeWidth(BooxUtil.penDefaultWidth);
                 BrushManager.getInstance().resetPage(0, false);
                 break;
             // 橡皮
             case R.id.bt_eraser:
                 BrushManager.getInstance().setEraser();
-                BrushManager.getInstance().setStrokeColor(Color.WHITE);
-                BrushManager.getInstance().setStrokeWidth(BooxUtil.eraseDefaultWidth);
                 BrushManager.getInstance().resetPage(0, false);
                 break;
             case R.id.bt_clear_all:
