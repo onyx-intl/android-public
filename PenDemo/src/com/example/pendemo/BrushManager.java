@@ -118,7 +118,7 @@ public class BrushManager {
     }
 
     public void releaseWakeLock(boolean leave) {
-        if (isE970B()) {
+        if (BooxUtil.isE970B()) {
             if (mEnableWakeLock && mLock != null) {
                 mLock.release();
                 mLock = null;
@@ -212,7 +212,7 @@ public class BrushManager {
     }
 
     public boolean onTouchEvent(MotionEvent event) {
-        if (!Build.MODEL.contains(RefreshManager.MODEL_WENSHI)) {
+        if (!BooxUtil.isE970B()) {
             return false;
         }
         switch (mEditType) {
@@ -229,7 +229,7 @@ public class BrushManager {
     }
 
     public void resetPage(final int type, boolean invalidate) {
-        if (Build.MODEL.contains(RefreshManager.MODEL_WENSHI)) {
+        if (BooxUtil.isE970B()) {
             mHandler.postDelayed(new Runnable() {
                 public void run() {
                     EpdController.enablePost(mBrushView, type);
@@ -319,10 +319,6 @@ public class BrushManager {
         currentScribble = null;
     }
 
-    private boolean isE970B() {
-        return Build.MODEL.contains(RefreshManager.MODEL_WENSHI);
-    }
-
     private final String pageKey(int page) {
         return String.valueOf(page);
     }
@@ -341,7 +337,7 @@ public class BrushManager {
         mPaintColor = defaultPaintColor;
         mPaint.setColor(mPaintColor);
 
-        if (isE970B()) {
+        if (BooxUtil.isE970B()) {
             mPaintWidth = defaultPaintWidth;
             mPaint.setStrokeWidth(mPaintWidth);
 

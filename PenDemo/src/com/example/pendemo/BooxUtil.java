@@ -13,8 +13,14 @@ public class BooxUtil {
     public static int penDefaultWidth=3;
     public static int eraseDefaultWidth=20;
 
+    private static final String MODEL_WENSHI = "E970B";
+
+    public static boolean isE970B() {
+        return Build.MODEL.contains(MODEL_WENSHI);
+    }
+
     public static void activityGCUpdate(final Activity activity, final int delay) {
-        if (!Build.MODEL.contains(RefreshManager.MODEL_WENSHI)) {
+        if (!isE970B()) {
             return;
         }
         final View view = activity.getWindow().getDecorView();
