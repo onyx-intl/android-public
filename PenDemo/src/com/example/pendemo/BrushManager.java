@@ -535,7 +535,6 @@ public class BrushManager {
         for (OnyxScribble scribble :scribbleList){
             ArrayList<OnyxScribblePoint> tempPoints=scribble.getPoints();
             for (int i = 0; i < tempPoints.size() - 1; i++) {
-                Log.e("tag pointersize","pointer size"+tempPoints.get(i).getSize());
                 if (tempPoints.get(i).getSize()==0){
                     paint.setStrokeWidth(BooxUtil.eraseDefaultWidth);
                     paint.setColor(Color.WHITE);
