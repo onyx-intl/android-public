@@ -168,12 +168,10 @@ public class BrushView extends SurfaceView {
 
     public void setEdit() {
         mEditType = BrushManager.TYPE_EDIT;
-        mBrushManager.setEdit();
     }
 
     public void setEraser() {
         mEditType = BrushManager.TYPE_ERASE;
-        mBrushManager.setEraser();
     }
 
     /**
@@ -253,7 +251,4 @@ public class BrushView extends SurfaceView {
         this.parentView = parentView;
     }
 
-    public void setStrokeColor(int strokeColor){
-        EpdController.setStrokeStyle(strokeColor);
-    }
 }

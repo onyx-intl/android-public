@@ -13,6 +13,7 @@ import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.os.Build;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.PowerManager;
 import android.text.TextUtils;
@@ -28,6 +29,9 @@ import com.onyx.android.sdk.device.EpdController;
 import com.onyx.android.sdk.ui.data.ScribbleFactory;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -432,6 +436,7 @@ public class BrushManager {
 
         mPaint.setXfermode(null);
         mPaint.setAlpha(255);
+        mMainView.setEdit();
     }
 
     public void setEraser() {
@@ -440,12 +445,15 @@ public class BrushManager {
         mEditType = TYPE_ERASE;
         mPaint.setAlpha(255);
         mPaint.setStrokeWidth(mPaintWidth);
+        mMainView.setEraser();
     }
 
     /**
      * clear tmpCanvas.
      */
     public void clear() {
+        deletePage(mContext);
+
         if (DEBUG) Log.d(TAG, "--->>>clear()");
         EpdController.enablePost(mMainView, 1);
         try {
@@ -455,6 +463,17 @@ public class BrushManager {
             mTempBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_4444);
         }
         RefreshManager.invalidateGC4(mMainView, false);
+        mMainView.cancelEdit();
+        mMainView.setEdit();
+        mMainView.cancelEdit();
+        mMainView.setEdit();
+        Canvas canvas=mMainView.getHolder().lockCanvas();
+        if (mMainView.getmBitmapEdit()==null){
+            canvas.drawColor(Color.WHITE);
+        }else {
+            canvas.drawBitmap(mMainView.getmBitmapEdit(),0,0,null);
+        }
+        mMainView.getHolder().unlockCanvasAndPost(canvas);
     }
 
     public void handWriting() {
@@ -592,5 +611,42 @@ public class BrushManager {
         int top = mMainView.getTop();
         int bottom = mMainView.getBottom();
         return new Rect(mMainView.getLeft(), top, mMainView.getRight(), bottom);
+    }
+
+    public void setStrokeColor(int strokeColor){
+        EpdController.setStrokeStyle(strokeColor);
+    }
+
+    /**
+     * 保存笔记本
+     *
+     * @return
+     */
+    public boolean saveNoteBook() {
+        Paint paint = new Paint();
+        paint.setColor(Color.BLACK);
+        paint.setStrokeWidth(3);
+        final Bitmap baseBitmap = Bitmap.createBitmap(825,1200, Bitmap.Config.ARGB_8888);
+        Canvas tempCanvas=new Canvas(baseBitmap);
+        tempCanvas.drawColor(Color.WHITE);
+        BrushManager.getInstance().paintScribbles(tempCanvas, paint);
+        File saveFile = new File(Environment.getExternalStorageDirectory() + "/DCIM/test"+BrushManager.getInstance().currentPage+ ".png");
+        if (!saveFile.exists()){
+            try {
+                saveFile.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            FileOutputStream iStream = new FileOutputStream(saveFile);
+            baseBitmap.compress(Bitmap.CompressFormat.PNG, 100, iStream);
+            iStream.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 }
