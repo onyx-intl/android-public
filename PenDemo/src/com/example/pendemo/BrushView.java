@@ -19,6 +19,8 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.ListView;
 
+import com.onyx.android.sdk.device.EpdController;
+
 public class BrushView extends SurfaceView {
     private static final String TAG = BrushView.class.getSimpleName();
 
@@ -251,4 +253,7 @@ public class BrushView extends SurfaceView {
         this.parentView = parentView;
     }
 
+    public void setStrokeColor(int strokeColor){
+        EpdController.setStrokeStyle(strokeColor);
+    }
 }
