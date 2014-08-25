@@ -305,7 +305,6 @@ public class BrushManager {
                     }
                     FlushingPostTask flushingPostTask =new FlushingPostTask(context,mMainView);
                     finishScribble(currentPage, FAKE_MD5);
-                    saveScribbles(context, FAKE_MD5);
                     timer.schedule(flushingPostTask,400);
                     pointList.add(new PointF(event.getX(), event.getY()));
                     break;
@@ -378,7 +377,6 @@ public class BrushManager {
                     }
                     FlushingPostTask flushingPostTask =new FlushingPostTask(context,mMainView);
                     finishScribble(currentPage, FAKE_MD5);
-                    saveScribbles(context, FAKE_MD5);
                     setEdit();
                     timer.schedule(flushingPostTask,400);
                     pointList.add(new PointF(event.getX(), event.getY()));
@@ -563,6 +561,7 @@ public class BrushManager {
         }
 
         public void run() {
+            saveScribbles(mContext, FAKE_MD5);
             EpdController.leaveScribbleMode(mView);
             flushPendingPost(mContext);
         }
