@@ -4,23 +4,14 @@ package com.example.pendemo;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
 import android.os.Bundle;
-import android.os.Environment;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 
 /**
  * @Class Name : NoteDetailActivity
@@ -52,7 +43,7 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
     public boolean onOptionsItemSelected(MenuItem item) {
         BrushManager.getInstance().resetPage(1, false);
         if (item.getItemId() == android.R.id.home) {
-            BrushManager.getInstance().saveNoteBook();
+            BrushManager.getInstance().saveNoteBookToStorage();
             finish();
         }
         return true;
@@ -86,7 +77,7 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
         switch (v.getId()) {
             case R.id.bt_commit:
                 BrushManager.getInstance().resetPage(1, true);
-                BrushManager.getInstance().saveNoteBook();
+                BrushManager.getInstance().saveNoteBookToStorage();
                 break;
             // 笔
             case R.id.bt_paint:
@@ -106,13 +97,13 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
                 BrushManager.getInstance().clear();
                 break;
             case R.id.bt_save:
-                BrushManager.getInstance().saveNoteBook();
+                BrushManager.getInstance().saveNoteBookToStorage();
                 BrushManager.getInstance().resetPage(1, true);
                 BrushManager.getInstance().saveScribbles(this,BrushManager.FAKE_MD5);
                 break;
             case R.id.bt_quit:
                 BrushManager.getInstance().resetPage(1, false);
-                BrushManager.getInstance().saveScribbles(this,BrushManager.FAKE_MD5);
+                BrushManager.getInstance().saveScribbles(this, BrushManager.FAKE_MD5);
                 finish();
                 break;
             case R.id.bt_line_3:
@@ -159,7 +150,7 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
             return true;
         } else if (keyCode == KeyEvent.KEYCODE_BACK) {
             BrushManager.getInstance().resetPage(1, false);
-            BrushManager.getInstance().saveNoteBook();
+            BrushManager.getInstance().saveNoteBookToStorage();
             finish();
         }
         return super.onKeyDown(keyCode, event);

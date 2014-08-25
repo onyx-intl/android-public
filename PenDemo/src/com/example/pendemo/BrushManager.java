@@ -622,7 +622,7 @@ public class BrushManager {
      *
      * @return
      */
-    public boolean saveNoteBook() {
+    public boolean saveNoteBookToStorage() {
         Paint paint = new Paint();
         paint.setColor(Color.BLACK);
         paint.setStrokeWidth(3);
