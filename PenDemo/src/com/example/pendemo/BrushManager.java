@@ -12,7 +12,6 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.Xfermode;
-import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.PowerManager;
@@ -28,7 +27,6 @@ import com.onyx.android.sdk.device.EpdController;
 import com.onyx.android.sdk.ui.data.ScribbleFactory;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -101,6 +99,10 @@ public class BrushManager {
     private long touchDownTime =0;
     private long touchUpTime =0;
 
+    public static BrushManager getInstance() {
+        return sInstance;
+    }
+
     public BrushManager(BrushView mainView, int defaultPaintWidth, int defaultPaintColor, boolean enableWakeLock) {
         super();
 
@@ -113,8 +115,44 @@ public class BrushManager {
         initBrush(defaultPaintWidth, defaultPaintColor, enableWakeLock);
     }
 
-    public static BrushManager getInstance() {
-        return sInstance;
+    public void onSizeChanged(int w, int h) {
+        if (DEBUG) Log.d(TAG, "--->>>onSizeChanged()");
+        mWidth = w;
+        mHeight = h;
+
+        try {
+            Bitmap old = mDrawingBitmap;
+            mDrawingBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_4444);
+            if (old != null && !old.isRecycled()) {
+                old.recycle();
+            }
+        } catch (Error OutOfMemoryError) {
+            System.gc();
+            mDrawingBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_4444);
+        }
+    }
+
+    public void onDraw(final Canvas canvas) {
+        if (canvas != null && mDrawingBitmap != null) {
+            canvas.drawBitmap(mDrawingBitmap, 0, 0, null);
+        }
+    }
+
+    public boolean onTouchEvent(MotionEvent event) {
+        if (!BooxUtil.isE970B()) {
+            return false;
+        }
+        switch (mEditType) {
+            case View:
+                return false;
+            case Scribble:
+                processScribble(event);
+                break;
+            case Erase:
+                processErase(event);
+                break;
+        }
+        return true;
     }
 
     public void releaseWakeLock(boolean leave) {
@@ -186,46 +224,6 @@ public class BrushManager {
 
     public Bitmap getBitmap() {
         return mDrawingBitmap;
-    }
-
-    public void onSizeChanged(int w, int h) {
-        if (DEBUG) Log.d(TAG, "--->>>onSizeChanged()");
-        mWidth = w;
-        mHeight = h;
-
-        try {
-            Bitmap old = mDrawingBitmap;
-            mDrawingBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_4444);
-            if (old != null && !old.isRecycled()) {
-                old.recycle();
-            }
-        } catch (Error OutOfMemoryError) {
-            System.gc();
-            mDrawingBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_4444);
-        }
-    }
-
-    public void onDraw(final Canvas canvas) {
-        if (canvas != null && mDrawingBitmap != null) {
-            canvas.drawBitmap(mDrawingBitmap, 0, 0, null);
-        }
-    }
-
-    public boolean onTouchEvent(MotionEvent event) {
-        if (!BooxUtil.isE970B()) {
-            return false;
-        }
-        switch (mEditType) {
-            case View:
-                return false;
-            case Scribble:
-                processScribble(event);
-                break;
-            case Erase:
-                processErase(event);
-                break;
-        }
-        return true;
     }
 
     public void resetPage(final int type, boolean invalidate) {
