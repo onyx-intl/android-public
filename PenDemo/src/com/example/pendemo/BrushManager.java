@@ -184,8 +184,6 @@ public class BrushManager {
     }
 
     public boolean saveNoteBookToStorage(String path) {
-        mPaint.setColor(Color.BLACK);
-        mPaint.setStrokeWidth(3);
         final Bitmap bmp = Bitmap.createBitmap(mBrushView.getWidth(), mBrushView.getHeight(), Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bmp);
         canvas.drawColor(Color.WHITE);
