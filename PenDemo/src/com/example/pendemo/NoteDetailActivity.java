@@ -22,6 +22,8 @@ import android.widget.TextView;
 public class NoteDetailActivity extends Activity implements OnClickListener {
     private static final String TAG = NoteDetailActivity.class.getSimpleName();
 
+    private static String FAKE_MD5 = "asdadadasdfrqgewgwe";
+
     BrushView mBrushView = null;
 
     @Override
@@ -37,7 +39,7 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
         BrushManager.getInstance().setStrokeColor(Color.BLACK);
-        BrushManager.getInstance().prepareScribbles(this, BrushManager.FAKE_MD5);
+        BrushManager.getInstance().prepareScribbles(this, FAKE_MD5);
 
         mBrushView.setPathStr("/sdcard/DCIM/snapshot_20140825_221143.png");
     }
@@ -54,7 +56,7 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
 
     @Override
     protected void onDestroy() {
-        BrushManager.getInstance().saveScribbles(this, BrushManager.FAKE_MD5);
+        BrushManager.getInstance().saveScribbles(this, FAKE_MD5);
         super.onDestroy();
         BrushManager.getInstance().releaseWakeLock(true);
     }
@@ -98,11 +100,11 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
             case R.id.bt_save:
                 BrushManager.getInstance().saveNoteBookToStorage();
                 BrushManager.getInstance().resetPage(1, true);
-                BrushManager.getInstance().saveScribbles(this, BrushManager.FAKE_MD5);
+                BrushManager.getInstance().saveScribbles(this, FAKE_MD5);
                 break;
             case R.id.bt_quit:
                 BrushManager.getInstance().resetPage(1, false);
-                BrushManager.getInstance().saveScribbles(this, BrushManager.FAKE_MD5);
+                BrushManager.getInstance().saveScribbles(this, FAKE_MD5);
                 finish();
                 break;
             case R.id.bt_line_3:

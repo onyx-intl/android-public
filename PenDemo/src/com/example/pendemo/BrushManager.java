@@ -45,7 +45,6 @@ import java.util.TimerTask;
  */
 public class BrushManager {
     private static final String TAG = "SHLF-BrushManager";
-    public static String FAKE_MD5 = "asdadadasdfrqgewgwe";
     private static final boolean DEBUG = true;
 
     public static enum BrushType {View, Scribble, Erase}
@@ -64,6 +63,8 @@ public class BrushManager {
             brushManager.flushPendingPost();
         }
     }
+
+    private String mMD5 = null;
 
     private List<PointF> pointList = new ArrayList<PointF>();
     private List<OnyxScribble> pendingScribble = new ArrayList<OnyxScribble>();
@@ -167,6 +168,8 @@ public class BrushManager {
     }
 
     public void prepareScribbles(Context context, String md5) {
+        mMD5 = md5;
+
         scribbleMap.clear();
         scribblePositionsInDb.clear();
         if (pendingScribble != null) {
@@ -235,7 +238,9 @@ public class BrushManager {
             }, ((0 == type) ? 2000 : 0));
         }
         if (invalidate) {
-            if (null != mBrushView) mBrushView.invalidate();
+            if (null != mBrushView) {
+                mBrushView.invalidate();
+            }
         }
     }
 
@@ -259,10 +264,13 @@ public class BrushManager {
     public void clear() {
         deletePage(mBrushView.getContext());
 
-        if (DEBUG) Log.d(TAG, "--->>>clear()");
         EpdController.enablePost(mBrushView, 1);
         try {
+            Bitmap old = mDrawingBitmap;
             mDrawingBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_4444);
+            if (old != null && !old.isRecycled()) {
+                old.recycle();
+            }
         } catch (Error OutOfMemoryError) {
             System.gc();
             mDrawingBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_4444);
@@ -415,7 +423,7 @@ public class BrushManager {
 
     private void deletePage(Context context) {
         if (pendingScribble.isEmpty()) {
-            List<OnyxScribble> list = loadScribblesOfPosition(context, FAKE_MD5, String.valueOf(currentPage));
+            List<OnyxScribble> list = loadScribblesOfPosition(context, mMD5, String.valueOf(currentPage));
             for (OnyxScribble s : list) {
                 OnyxCmsCenter.deleteScribble(context, s);
             }
@@ -510,7 +518,7 @@ public class BrushManager {
                     }
                 }
                 FlushingPostTask flushingPostTask = new FlushingPostTask(mBrushView, this);
-                finishScribble(currentPage, FAKE_MD5);
+                finishScribble(currentPage, mMD5);
                 timer.schedule(flushingPostTask, 400);
                 pointList.add(new PointF(event.getX(), event.getY()));
                 break;
@@ -587,7 +595,7 @@ public class BrushManager {
                     }
                 }
                 FlushingPostTask flushingPostTask = new FlushingPostTask(mBrushView, this);
-                finishScribble(currentPage, FAKE_MD5);
+                finishScribble(currentPage, mMD5);
                 setEdit();
                 timer.schedule(flushingPostTask, 400);
                 pointList.add(new PointF(event.getX(), event.getY()));
