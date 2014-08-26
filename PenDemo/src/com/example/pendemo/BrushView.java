@@ -18,9 +18,6 @@ import android.widget.ListView;
 public class BrushView extends SurfaceView {
     private static final String TAG = BrushView.class.getSimpleName();
 
-    private int mWidth;
-    private int mHeight;
-
     private ListView parentView;
     private Bitmap mBackgroundBitmap = null; // 临时画布中的临时图片
     private String mPathStr;
@@ -148,15 +145,13 @@ public class BrushView extends SurfaceView {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         Log.d(TAG, "onSizeChanged: " + w + ", " + h);
         super.onSizeChanged(w, h, oldw, oldh);
-        mWidth = w;
-        mHeight = h;
         mBrushManager.onSizeChanged(w, h);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         if (mBackgroundBitmap == null) {
-            mBackgroundBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_4444);
+            mBackgroundBitmap = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_4444);
         }
         canvas.drawBitmap(mBackgroundBitmap, 0, 0, null);
         mBrushManager.onDraw(canvas);
