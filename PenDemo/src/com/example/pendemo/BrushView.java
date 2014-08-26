@@ -30,6 +30,10 @@ public class BrushView extends SurfaceView {
     private Bitmap mNewBitmap;
     private String mTeachMark;
 
+    public BrushManager getBrushManager() {
+        return mBrushManager;
+    }
+
     public String getPathStr() {
         return mPathStr;
     }
@@ -81,7 +85,7 @@ public class BrushView extends SurfaceView {
     }
 
     public Bitmap getCurrentBitmap() {
-        return mBrushManager.getBitmap();
+        return mBrushManager.getScribbleBitmap();
     }
 
     public Bitmap HandWriting() {
@@ -116,7 +120,7 @@ public class BrushView extends SurfaceView {
     }
 
     private void initialize() {
-        mBrushManager = new BrushManager(this, BooxUtil.penDefaultWidth, Color.BLACK, true);
+        mBrushManager = new BrushManager(this, BooxUtil.penDefaultWidth);
 
         getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override
@@ -180,7 +184,7 @@ public class BrushView extends SurfaceView {
 
     }
 
-    private void drawBackground(Canvas canvas) {
+    public void drawBackground(Canvas canvas) {
         if (mBackgroundBitmap == null) {
             canvas.drawColor(Color.WHITE);
         } else {
