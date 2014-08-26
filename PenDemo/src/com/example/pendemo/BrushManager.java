@@ -147,6 +147,9 @@ public class BrushManager {
      * @param releaseWakeLock if holdWakeLock is true in start(), then must release wake lock here
      */
     public void finish(boolean releaseWakeLock) {
+        if (!mReady) {
+            return;
+        }
         mReady = false;
         saveScribbles(mMD5);
         if (mScribbleBitmap != null && !mScribbleBitmap.isRecycled()) {
