@@ -82,11 +82,8 @@ public class BrushManager {
     private int mHeight;
     private Bitmap mDrawingBitmap;
 
-    private Paint mPaint;
-
     private int mStrokeWidth = BooxUtil.penDefaultWidth;
     private int mPaintWidth;
-    private int mPaintColor;
 
     private BrushType mEditType = BrushType.View;
     private PowerManager.WakeLock mLock;
@@ -332,24 +329,10 @@ public class BrushManager {
     // init brush
     private void initBrush(int defaultPaintWidth, int defaultPaintColor, boolean enableWakeLock) {
         mBrushView.setDrawingCacheEnabled(true);
-
-        mPaint = new Paint();
-        mPaint.setAntiAlias(true);
-        mPaint.setDither(true);
-        mPaint.setStyle(Paint.Style.STROKE);
-        mPaint.setStrokeJoin(Paint.Join.ROUND);
-        mPaint.setStrokeCap(Paint.Cap.ROUND);
-
-        mPaintColor = defaultPaintColor;
-        mPaint.setColor(mPaintColor);
-
         if (BooxUtil.isE970B()) {
             mPaintWidth = defaultPaintWidth;
-            mPaint.setStrokeWidth(mPaintWidth);
-
             mMapMatrix.postRotate(270);
             mMapMatrix.postTranslate(0, 825);
-
             mEnableWakeLock = enableWakeLock;
             if (mEnableWakeLock) {
                 mLock = DeviceInfo.currentDevice.newWakeLock(mBrushView.getContext(),
@@ -358,7 +341,6 @@ public class BrushManager {
             }
         } else {
             mPaintWidth = defaultPaintWidth;
-            mPaint.setStrokeWidth(mPaintWidth);
         }
     }
 
