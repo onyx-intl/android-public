@@ -16,7 +16,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.PowerManager;
 import android.view.MotionEvent;
-import android.view.View;
 
 import com.onyx.android.sdk.data.cms.OnyxCmsCenter;
 import com.onyx.android.sdk.data.cms.OnyxScribble;
@@ -111,7 +110,7 @@ public class BrushManager {
             return false;
         }
         if (mEditType == BrushType.Scribble || mEditType == BrushType.Erase) {
-            processFastScribble(event, mEditType == BrushType.Erase);
+            applyFastScribble(event, mEditType == BrushType.Erase);
             return true;
         }
         return false;
@@ -385,7 +384,7 @@ public class BrushManager {
         return updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY());
     }
 
-    private void processFastScribble(MotionEvent event, boolean erasing) {
+    private void applyFastScribble(MotionEvent event, boolean erasing) {
         float dst[] = mapPoint(event.getX(), event.getY());
 
         float size;
