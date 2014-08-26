@@ -63,6 +63,8 @@ public class BrushManager {
     private PowerManager.WakeLock mLock;
     private Handler mHandler = new Handler();
 
+    private boolean mReady = false;
+
     private BrushView mBrushView;
     private Bitmap mScribbleBitmap;
 
@@ -97,19 +99,24 @@ public class BrushManager {
         }
     };
 
-    public BrushManager(BrushView brushView, int defaultPaintWidth) {
-        super();
-
+    public BrushManager(BrushView brushView, int defaultStrokeWidth) {
         mBrushView = brushView;
-        initBrush(defaultPaintWidth);
+        mBrushView.setDrawingCacheEnabled(true);
+        mStrokeWidth = defaultStrokeWidth;
+        if (BooxUtil.isE970B()) {
+            mMapMatrix.postRotate(270);
+            mMapMatrix.postTranslate(0, 825);
+        }
     }
 
     public void onSizeChanged(int w, int h) {
-        resetScribbleBitmap(w, h);
+        if (mReady) {
+            resetScribbleBitmap(w, h);
+        }
     }
 
     public void onDraw(final Canvas canvas) {
-        if (canvas != null && mScribbleBitmap != null) {
+        if (canvas != null && mScribbleBitmap != null && !mScribbleBitmap.isRecycled()) {
             canvas.drawBitmap(mScribbleBitmap, 0, 0, null);
         }
     }
@@ -132,10 +139,21 @@ public class BrushManager {
         }
         mMD5 = md5;
         loadScribbles(md5);
+        mReady = true;
     }
 
+    /**
+     * save scribbles, and recycle scribble bitmap to avoid resource leaking
+     *
+     * @param releaseWakeLock if holdWakeLock is true in start(), then must release wake lock here
+     */
     public void finish(boolean releaseWakeLock) {
+        mReady = false;
         saveScribbles(mMD5);
+        if (mScribbleBitmap != null && !mScribbleBitmap.isRecycled()) {
+            mScribbleBitmap.recycle();
+            mScribbleBitmap = null;
+        }
         if (BooxUtil.isE970B()) {
             if (releaseWakeLock && mLock != null) {
                 mLock.release();
@@ -146,6 +164,11 @@ public class BrushManager {
         }
     }
 
+    /**
+     * after finish(), scribble bitmap will be no longer available
+     *
+     * @return
+     */
     public Bitmap getScribbleBitmap() {
         return mScribbleBitmap;
     }
@@ -175,12 +198,19 @@ public class BrushManager {
      * clear tmpCanvas.
      */
     public void clear() {
-        deletePage(mBrushView.getContext());
-        resetScribbleBitmap(mBrushView.getWidth(), mBrushView.getHeight());
-
         Canvas canvas = mBrushView.getHolder().lockCanvas();
-        mBrushView.drawBackground(canvas);
-        mBrushView.getHolder().unlockCanvasAndPost(canvas);
+        if (canvas == null) {
+            return;
+        }
+        try {
+            mBrushView.drawBackground(canvas);
+            if (mReady) {
+                deletePage(mBrushView.getContext());
+                resetScribbleBitmap(mBrushView.getWidth(), mBrushView.getHeight());;
+            }
+        } finally {
+            mBrushView.getHolder().unlockCanvasAndPost(canvas);
+        }
     }
 
     public boolean saveNoteBookToStorage(String path) {
@@ -190,8 +220,12 @@ public class BrushManager {
         canvas.drawBitmap(mScribbleBitmap, 0, 0, null);
         try {
             FileOutputStream is = new FileOutputStream(new File(path));
-            bmp.compress(Bitmap.CompressFormat.PNG, 100, is);
-            is.close();
+            try {
+                bmp.compress(Bitmap.CompressFormat.PNG, 100, is);
+            } finally {
+                is.close();
+            }
+            return true;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -280,18 +314,6 @@ public class BrushManager {
         return String.valueOf(page);
     }
 
-    // init brush
-    private void initBrush(int defaultStrokeWidth) {
-        mBrushView.setDrawingCacheEnabled(true);
-//        mPaint.setStrokeJoin(Paint.Join.ROUND);
-//        mPaint.setAntiAlias(true);
-        mStrokeWidth = defaultStrokeWidth;
-        if (BooxUtil.isE970B()) {
-            mMapMatrix.postRotate(270);
-            mMapMatrix.postTranslate(0, 825);
-        }
-    }
-
     private ArrayList<OnyxScribble> loadScribblesOfPosition(Context context, String md5, String position) {
         ArrayList<OnyxScribble> scribbles = new ArrayList<OnyxScribble>();
         if (OnyxCmsCenter.getScribbles(context, context.getPackageName(),
@@ -330,20 +352,21 @@ public class BrushManager {
     }
 
     private void updateBrushView() {
-        mPaint.setColor(Color.BLACK);
-        mPaint.setStrokeWidth(BooxUtil.penDefaultWidth);
         Canvas canvas = mBrushView.getHolder().lockCanvas();
         if (canvas == null) {
             return;
         }
 
-        mBrushView.drawBackground(canvas);
-
-        Canvas scribble_canvas = new Canvas(mScribbleBitmap);
-        paintScribbles(scribble_canvas, mPaint);
-
-        canvas.drawBitmap(mScribbleBitmap, 0, 0, null);
-        mBrushView.getHolder().unlockCanvasAndPost(canvas);
+        try {
+            mBrushView.drawBackground(canvas);
+            if (mReady && mScribbleBitmap != null && !mScribbleBitmap.isRecycled()) {
+                Canvas scribble_canvas = new Canvas(mScribbleBitmap);
+                paintScribbles(scribble_canvas, mPaint);
+                canvas.drawBitmap(mScribbleBitmap, 0, 0, null);
+            }
+        } finally {
+            mBrushView.getHolder().unlockCanvasAndPost(canvas);
+        }
     }
 
     private void deletePage(Context context) {
