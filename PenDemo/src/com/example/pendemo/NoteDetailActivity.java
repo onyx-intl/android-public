@@ -41,7 +41,7 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
         mBrushView.getBrushManager().setStrokeColor(Color.BLACK);
         mBrushView.getBrushManager().start(FAKE_MD5, true);
 
-        mBrushView.setPathStr("/sdcard/DCIM/snapshot_20140825_221143.png");
+        mBrushView.setPathStr("/sdcard/DCIM/snapshot_20140826_150822.png");
     }
 
     @Override

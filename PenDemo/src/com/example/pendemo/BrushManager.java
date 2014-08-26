@@ -191,19 +191,19 @@ public class BrushManager {
     public boolean saveNoteBookToStorage(String path) {
         mPaint.setColor(Color.BLACK);
         mPaint.setStrokeWidth(3);
-        final Bitmap baseBitmap = Bitmap.createBitmap(825, 1200, Bitmap.Config.ARGB_8888);
-        Canvas tempCanvas = new Canvas(baseBitmap);
-        tempCanvas.drawColor(Color.WHITE);
-        paintScribbles(tempCanvas, mPaint);
+        final Bitmap bmp = Bitmap.createBitmap(mBrushView.getWidth(), mBrushView.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bmp);
+        canvas.drawColor(Color.WHITE);
+        canvas.drawBitmap(mScribbleBitmap, 0, 0, null);
         try {
             FileOutputStream is = new FileOutputStream(new File(path));
-            baseBitmap.compress(Bitmap.CompressFormat.PNG, 100, is);
+            bmp.compress(Bitmap.CompressFormat.PNG, 100, is);
             is.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        if (baseBitmap != null && !baseBitmap.isRecycled()) {
-            baseBitmap.recycle();
+        if (bmp != null && !bmp.isRecycled()) {
+            bmp.recycle();
         }
         return false;
     }
