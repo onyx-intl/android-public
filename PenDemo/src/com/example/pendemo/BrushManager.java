@@ -84,9 +84,18 @@ public class BrushManager {
     public int mCurrentPage = new Random().nextInt(1000);
     private float mPageScale = 1.0f;
 
-    Timer mTimer = new Timer();
-    private long mTouchDownTime = 0;
-    private long mTouchUpTime = 0;
+    private long mLastTouchDownTime = 0;
+    private long mLastTouchUpTime = 0;
+
+    private Runnable mDelayedLeaveScribbleModeAndUpdateBrushView = new Runnable() {
+        @Override
+        public void run() {
+            if (mLastTouchUpTime > mLastTouchDownTime) {
+                EpdController.leaveScribbleMode(mBrushView);
+                updateBrushView();
+            }
+        }
+    };
 
     public BrushManager(BrushView brushView, int defaultPaintWidth) {
         super();
@@ -380,6 +389,14 @@ public class BrushManager {
         return point.getSize() < 0;
     }
 
+    private void updatePointSize(OnyxScribblePoint point, float size, boolean erasing) {
+        if (erasing) {
+            setErasePointSize(point);
+        } else {
+            point.setSize(size);
+        }
+    }
+
     private boolean isMotionEventInsideView(MotionEvent event) {
         return updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY());
     }
@@ -391,29 +408,19 @@ public class BrushManager {
         OnyxScribblePoint point;
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                mTouchDownTime = event.getEventTime();
-                if (mTouchUpTime != 0) {
-                    if (mTouchDownTime - mTouchUpTime < 400) {
-                        mTimer.cancel();
-                        mTimer.purge();
-                        mTimer = new Timer();
-                    }
-                }
+                mLastTouchDownTime = event.getEventTime();
+                EpdController.enterScribbleMode(mBrushView);
+                mHandler.removeCallbacks(mDelayedLeaveScribbleModeAndUpdateBrushView);
 
                 point = OnyxScribblePoint.fromEvent(event);
-                EpdController.enterScribbleMode(mBrushView);
                 size = EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                         event.getSize(), event.getEventTime());
-                if (erasing) {
-                    setErasePointSize(point);
-                } else {
-                    point.setSize(size);
-                }
+                updatePointSize(point, size, erasing);
                 startScribble(mBrushView.getContext(), mCurrentPage, mPageScale, 0, 0, point);
                 break;
             case MotionEvent.ACTION_MOVE:
                 // Todo use rawX to fix right boundary still drawing problem.
-                if (!updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
+                if (!isMotionEventInsideView(event)) {
                     if (!mScribbleInterruptedBecauseOutOfRegion) {
                         float last[] = mapPoint(mLastTouchMovePoint.x, mLastTouchMovePoint.y);
                         EpdController.finishStroke(mPaintWidth, last[0], last[1], event.getPressure(),
@@ -431,11 +438,7 @@ public class BrushManager {
                     point = OnyxScribblePoint.fromEvent(event);
                     size = EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                             event.getSize(), event.getEventTime());
-                    if (erasing) {
-                        setErasePointSize(point);
-                    } else {
-                        point.setSize(size);
-                    }
+                    updatePointSize(point, size, erasing);
                     startScribble(mBrushView.getContext(), mCurrentPage, mPageScale, 0, 0, point);
                     return;
                 } else {
@@ -445,40 +448,26 @@ public class BrushManager {
                         dst = mapPoint(event.getHistoricalX(i), event.getHistoricalY(i));
                         size = EpdController.addStrokePoint(mPaintWidth, dst[0], dst[1], event.getPressure(),
                                 event.getSize(), event.getEventTime());
-                        if (erasing) {
-                            setErasePointSize(point);
-                        } else {
-                            point.setSize(size);
-                        }
+                        updatePointSize(point, size, erasing);
                         addStrokePoints(mPageScale, 0, 0, point, false);
                     }
                     dst = mapPoint(event.getX(), event.getY());
                     point = OnyxScribblePoint.fromEvent(event);
-                    if (erasing) {
-                        setErasePointSize(point);
-                    } else {
-                        point.setSize(EpdController.addStrokePoint(mPaintWidth, dst[0], dst[1], event.getPressure(),
-                                event.getSize(), event.getEventTime()));
-                    }
+                    size = EpdController.addStrokePoint(mPaintWidth, dst[0], dst[1], event.getPressure(),
+                            event.getSize(), event.getEventTime());
+                    updatePointSize(point, size, erasing);
                     addStrokePoints(mPageScale, 0, 0, point, false);
                 }
                 break;
             case MotionEvent.ACTION_UP:
-                mTouchUpTime = event.getEventTime();
+                mLastTouchUpTime = event.getEventTime();
+                mHandler.postDelayed(mDelayedLeaveScribbleModeAndUpdateBrushView, 200);
+
                 if (!mScribbleInterruptedBecauseOutOfRegion) {
                     EpdController.finishStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                             event.getSize(), event.getEventTime());
                     finishScribble(mCurrentPage, mMD5);
                 }
-
-                EpdController.leaveScribbleMode(mBrushView);
-                mHandler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        updateBrushView();
-                    }
-                }, 10);
-
                 if (erasing) {
                     setEdit();
                 }
