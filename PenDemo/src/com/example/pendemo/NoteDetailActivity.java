@@ -96,7 +96,7 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
                 mBrushView.getBrushManager().saveNoteBookToStorage();
                 break;
             case R.id.bt_quit:
-                mBrushView.getBrushManager().finish(false);
+                mBrushView.getBrushManager().finish(true);
                 finish();
                 break;
             case R.id.bt_line_3:
