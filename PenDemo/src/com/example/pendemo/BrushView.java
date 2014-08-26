@@ -146,6 +146,7 @@ public class BrushView extends SurfaceView {
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        Log.d(TAG, "onSizeChanged: " + this.getWidth() + ", " + this.getHeight());
         super.onSizeChanged(w, h, oldw, oldh);
         mWidth = w;
         mHeight = h;
@@ -163,7 +164,7 @@ public class BrushView extends SurfaceView {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        Log.d(TAG, "view size: " + this.getWidth() + ", " + this.getHeight() + ", event: " + event);
+        Log.d(TAG, "onTouchEvent: " + event);
         // ignore multi touch
         if (event.getPointerCount() > 1) {
             return false;

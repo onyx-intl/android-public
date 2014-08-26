@@ -99,7 +99,6 @@ public class BrushManager {
     }
 
     public void onSizeChanged(int w, int h) {
-        if (DEBUG) Log.d(TAG, "--->>>onSizeChanged()");
         resetScribbleBitmap(w, h);
     }
 
@@ -152,14 +151,12 @@ public class BrushManager {
     }
 
     public void setEdit() {
-        if (DEBUG) Log.d(TAG, "--->>>setEdit()");
         mPaintWidth = mStrokeWidth;
         EpdController.setStrokeStyle(Color.BLACK);
         mEditType = BrushType.Scribble;
     }
 
     public void setEraser() {
-        if (DEBUG) Log.d(TAG, "--->>>setEraser()");
         mPaintWidth = BooxUtil.eraseDefaultWidth;
         EpdController.setStrokeStyle(Color.WHITE);
         mEditType = BrushType.Erase;
@@ -389,7 +386,6 @@ public class BrushManager {
         OnyxScribblePoint point;
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                if (DEBUG) Log.d(TAG, "--->>>touchDown()");
                 mTouchDownTime = event.getEventTime();
                 if (mTouchUpTime != 0) {
                     if (mTouchDownTime - mTouchUpTime < 400) {
@@ -439,7 +435,6 @@ public class BrushManager {
                 mPointList.add(new PointF(event.getX(), event.getY()));
                 break;
             case MotionEvent.ACTION_UP:
-                if (DEBUG) Log.d(TAG, "--->>>touchUp()");
                 mTouchUpTime = event.getEventTime();
                 if (mEditType == BrushManager.BrushType.Scribble) {
                     if (updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
@@ -462,7 +457,6 @@ public class BrushManager {
         OnyxScribblePoint point;
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                if (DEBUG) Log.d(TAG, "--->>>touchDown()");
                 mTouchDownTime = event.getEventTime();
                 if (mTouchUpTime != 0) {
                     if (mTouchDownTime - mTouchUpTime < 400) {
@@ -516,7 +510,6 @@ public class BrushManager {
                 mPointList.add(new PointF(event.getX(), event.getY()));
                 break;
             case MotionEvent.ACTION_UP:
-                if (DEBUG) Log.d(TAG, "--->>>touchUp()");
                 mTouchUpTime = event.getEventTime();
                 if (mEditType == BrushManager.BrushType.Scribble) {
                     if (updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
@@ -526,9 +519,9 @@ public class BrushManager {
                 }
                 FlushingPostTask flushingPostTask = new FlushingPostTask(mBrushView, this);
                 finishScribble(mCurrentPage, mMD5);
-                setEdit();
                 mTimer.schedule(flushingPostTask, 400);
                 mPointList.add(new PointF(event.getX(), event.getY()));
+                setEdit();
                 break;
             default:
                 break;
