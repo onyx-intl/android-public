@@ -482,7 +482,12 @@ public class BrushManager {
                 break;
             case MotionEvent.ACTION_UP:
                 mLastTouchUpTime = event.getEventTime();
-                mHandler.postDelayed(mDelayedLeaveScribbleModeAndUpdateBrushView, 200);
+                if (erasing) {
+                    // we want to see the result of erasing as soon as possible
+                    mHandler.post(mDelayedLeaveScribbleModeAndUpdateBrushView);
+                } else {
+                    mHandler.postDelayed(mDelayedLeaveScribbleModeAndUpdateBrushView, 500);
+                }
 
                 if (!mScribbleInterruptedBecauseOutOfRegion) {
                     EpdController.finishStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
