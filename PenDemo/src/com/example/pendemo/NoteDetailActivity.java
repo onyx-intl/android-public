@@ -123,15 +123,11 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
         // 编辑
         if (keyCode == KeyEvent.KEYCODE_BUTTON_START) {
             mBrushView.getBrushManager().setEdit();
-            mBrushView.getBrushManager().setStrokeWidth(BooxUtil.penDefaultWidth);
-            mBrushView.getBrushManager().setStrokeColor(Color.BLACK);
             return true;
         }
         // 擦除
         else if (keyCode == KeyEvent.KEYCODE_CLEAR) {
             mBrushView.getBrushManager().setEraser();
-            mBrushView.getBrushManager().setStrokeWidth(BooxUtil.eraseDefaultWidth);
-            mBrushView.getBrushManager().setStrokeColor(Color.WHITE);
             return true;
         } else if (keyCode == KeyEvent.KEYCODE_POWER) {
             finish();
