@@ -46,18 +46,6 @@ public class BrushManager {
 
     public static enum BrushType {View, Scribble, Erase}
 
-    private static class UpdateBrushViewTask extends TimerTask {
-        private BrushManager brushManager;
-
-        public UpdateBrushViewTask(BrushManager brushManager) {
-            this.brushManager = brushManager;
-        }
-
-        public void run() {
-            brushManager.updateBrushView();
-        }
-    }
-
     private String mMD5 = null;
     private PowerManager.WakeLock mLock;
     private Handler mHandler = new Handler();
