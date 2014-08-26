@@ -45,10 +45,10 @@ import java.util.TimerTask;
  */
 public class BrushManager {
     private static final String TAG = "SHLF-BrushManager";
-    public static String FAKE_MD5="asdadadasdfrqgewgwe";
+    public static String FAKE_MD5 = "asdadadasdfrqgewgwe";
     private static final boolean DEBUG = true;
 
-    public static enum BrushType { View, Scribble, Erase }
+    public static enum BrushType {View, Scribble, Erase}
 
     private static class FlushingPostTask extends TimerTask {
         private View mView;
@@ -91,13 +91,13 @@ public class BrushManager {
     private PowerManager.WakeLock mLock;
 
     private Handler mHandler;
-    boolean scribbleInterruptedBecauseOutOfRegion=false;
+    boolean scribbleInterruptedBecauseOutOfRegion = false;
     public int currentPage = new Random().nextInt(1000);
     private float pageScale = 1.0f;
 
     Timer timer = new Timer();
-    private long touchDownTime =0;
-    private long touchUpTime =0;
+    private long touchDownTime = 0;
+    private long touchUpTime = 0;
 
     public static BrushManager getInstance() {
         return sInstance;
@@ -182,7 +182,7 @@ public class BrushManager {
         this.mPaintWidth = mPaintWidth;
     }
 
-    public void setStrokeColor(int strokeColor){
+    public void setStrokeColor(int strokeColor) {
         EpdController.setStrokeStyle(strokeColor);
     }
 
@@ -190,12 +190,12 @@ public class BrushManager {
         Paint paint = new Paint();
         paint.setColor(Color.BLACK);
         paint.setStrokeWidth(3);
-        final Bitmap baseBitmap = Bitmap.createBitmap(825,1200, Bitmap.Config.ARGB_8888);
-        Canvas tempCanvas=new Canvas(baseBitmap);
+        final Bitmap baseBitmap = Bitmap.createBitmap(825, 1200, Bitmap.Config.ARGB_8888);
+        Canvas tempCanvas = new Canvas(baseBitmap);
         tempCanvas.drawColor(Color.WHITE);
         BrushManager.getInstance().paintScribbles(tempCanvas, paint);
         File saveFile = new File(path);
-        if (!saveFile.exists()){
+        if (!saveFile.exists()) {
             try {
                 saveFile.createNewFile();
             } catch (IOException e) {
@@ -218,7 +218,7 @@ public class BrushManager {
      * @return
      */
     public boolean saveNoteBookToStorage() {
-        String path = Environment.getExternalStorageDirectory() + "/DCIM/test"+BrushManager.getInstance().currentPage+ ".png";
+        String path = Environment.getExternalStorageDirectory() + "/DCIM/test" + BrushManager.getInstance().currentPage + ".png";
         return saveNoteBookToStorage(path);
     }
 
@@ -268,11 +268,11 @@ public class BrushManager {
             mDrawingBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_4444);
         }
         RefreshManager.invalidateGC4(mBrushView, false);
-        Canvas canvas= mBrushView.getHolder().lockCanvas();
-        if (mBrushView.getBackgroundBitmap()==null){
+        Canvas canvas = mBrushView.getHolder().lockCanvas();
+        if (mBrushView.getBackgroundBitmap() == null) {
             canvas.drawColor(Color.WHITE);
-        }else {
-            canvas.drawBitmap(mBrushView.getBackgroundBitmap(),0,0,null);
+        } else {
+            canvas.drawBitmap(mBrushView.getBackgroundBitmap(), 0, 0, null);
         }
         mBrushView.getHolder().unlockCanvasAndPost(canvas);
     }
@@ -294,7 +294,7 @@ public class BrushManager {
         currentScribble.getPoints().add(normalizedPoint);
     }
 
-    private void addStrokePoints(double scale, int px, int py, OnyxScribblePoint screenPoint,boolean touchDown) {
+    private void addStrokePoints(double scale, int px, int py, OnyxScribblePoint screenPoint, boolean touchDown) {
         OnyxScribblePoint normalizedPoint = new OnyxScribblePoint((float) ((screenPoint.getX() - px) / scale),
                 (float) ((screenPoint.getY() - py) / scale),
                 screenPoint.getPressure(), screenPoint.getSize(), screenPoint.getEventTime());
@@ -364,12 +364,12 @@ public class BrushManager {
     }
 
     private void paintScribbles(Canvas canvas, Paint paint) {
-        List<OnyxScribble> sendToCanvasScribble=new ArrayList<OnyxScribble>();
+        List<OnyxScribble> sendToCanvasScribble = new ArrayList<OnyxScribble>();
         sendToCanvasScribble.addAll(pendingScribble);
-        for (OnyxScribble scribble :sendToCanvasScribble){
-            ArrayList<OnyxScribblePoint> tempPoints=scribble.getPoints();
+        for (OnyxScribble scribble : sendToCanvasScribble) {
+            ArrayList<OnyxScribblePoint> tempPoints = scribble.getPoints();
             for (int i = 0; i < tempPoints.size() - 1; i++) {
-                if (tempPoints.get(i).getSize()==0){
+                if (tempPoints.get(i).getSize() == 0) {
                     paint.setStrokeWidth(BooxUtil.eraseDefaultWidth);
                     paint.setColor(Color.WHITE);
                     paint.setAlpha(0);
@@ -381,7 +381,7 @@ public class BrushManager {
                     paint.setColor(Color.BLACK);
                     paint.setAlpha(255);
                     paint.setXfermode(null);
-                }else {
+                } else {
                     paint.setStrokeWidth(tempPoints.get(i).getSize());
                     paint.setColor(Color.BLACK);
                     canvas.drawLine(tempPoints.get(i).getX(), tempPoints.get(i).getY(),
@@ -391,7 +391,7 @@ public class BrushManager {
         }
     }
 
-    private void flushPendingPost(){
+    private void flushPendingPost() {
         Paint paint = new Paint();
         paint.setColor(Color.BLACK);
         paint.setStrokeWidth(BooxUtil.penDefaultWidth);
@@ -400,9 +400,9 @@ public class BrushManager {
             return;
         }
 
-        if (mBrushView.getBackgroundBitmap()==null){
+        if (mBrushView.getBackgroundBitmap() == null) {
             canvas.drawColor(Color.WHITE);
-        }else {
+        } else {
             canvas.drawBitmap(mBrushView.getBackgroundBitmap(), 0, 0, null);
         }
 
@@ -414,12 +414,12 @@ public class BrushManager {
     }
 
     private void deletePage(Context context) {
-        if (pendingScribble.isEmpty()){
+        if (pendingScribble.isEmpty()) {
             List<OnyxScribble> list = loadScribblesOfPosition(context, FAKE_MD5, String.valueOf(currentPage));
             for (OnyxScribble s : list) {
                 OnyxCmsCenter.deleteScribble(context, s);
             }
-        }else {
+        } else {
             pendingScribble.clear();
         }
 
@@ -452,19 +452,19 @@ public class BrushManager {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 if (DEBUG) Log.d(TAG, "--->>>touchDown()");
-                touchDownTime =event.getEventTime();
-                if (touchUpTime !=0){
-                    if (touchDownTime - touchUpTime <400){
+                touchDownTime = event.getEventTime();
+                if (touchUpTime != 0) {
+                    if (touchDownTime - touchUpTime < 400) {
                         timer.cancel();
                         timer.purge();
-                        timer=new Timer();
+                        timer = new Timer();
                     }
                 }
-                point=OnyxScribblePoint.fromEvent(event);
+                point = OnyxScribblePoint.fromEvent(event);
                 EpdController.enterScribbleMode(mBrushView);
                 point.setSize(EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                         event.getSize(), event.getEventTime()));
-                startScribble(mBrushView.getContext(),currentPage,pageScale,0,0,point);
+                startScribble(mBrushView.getContext(), currentPage, pageScale, 0, 0, point);
                 pointList.add(new PointF(event.getX(), event.getY()));
                 break;
             case MotionEvent.ACTION_MOVE:
@@ -475,43 +475,43 @@ public class BrushManager {
                 }
                 if (scribbleInterruptedBecauseOutOfRegion) {
                     scribbleInterruptedBecauseOutOfRegion = false;
-                    point=OnyxScribblePoint.fromEvent(event);
+                    point = OnyxScribblePoint.fromEvent(event);
                     EpdController.finishStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                             event.getSize(), event.getEventTime());
                     EpdController.enablePost(mBrushView, 0);
                     point.setSize(EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                             event.getSize(), event.getEventTime()));
-                    startScribble(mBrushView.getContext(),currentPage,pageScale,0,0,point);
+                    startScribble(mBrushView.getContext(), currentPage, pageScale, 0, 0, point);
                     return;
                 } else {
                     int n = event.getHistorySize();
                     for (int i = 0; i < n; i++) {
-                        point=OnyxScribblePoint.fromHistoricalEvent(event,i);
+                        point = OnyxScribblePoint.fromHistoricalEvent(event, i);
                         dst = mapPoint(event.getHistoricalX(i), event.getHistoricalY(i));
                         point.setSize(EpdController.addStrokePoint(mPaintWidth, dst[0], dst[1], event.getPressure(),
                                 event.getSize(), event.getEventTime()));
-                        addStrokePoints(pageScale,0,0,point,false);
+                        addStrokePoints(pageScale, 0, 0, point, false);
                     }
                     dst = mapPoint(event.getX(), event.getY());
-                    point=OnyxScribblePoint.fromEvent(event);
+                    point = OnyxScribblePoint.fromEvent(event);
                     point.setSize(EpdController.addStrokePoint(mPaintWidth, dst[0], dst[1], event.getPressure(),
                             event.getSize(), event.getEventTime()));
-                    addStrokePoints(pageScale,0,0,point,false);
+                    addStrokePoints(pageScale, 0, 0, point, false);
                 }
                 pointList.add(new PointF(event.getX(), event.getY()));
                 break;
             case MotionEvent.ACTION_UP:
                 if (DEBUG) Log.d(TAG, "--->>>touchUp()");
-                touchUpTime =event.getEventTime();
+                touchUpTime = event.getEventTime();
                 if (mEditType == BrushManager.BrushType.Scribble) {
                     if (updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
                         EpdController.finishStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                                 event.getSize(), event.getEventTime());
                     }
                 }
-                FlushingPostTask flushingPostTask =new FlushingPostTask(mBrushView, this);
+                FlushingPostTask flushingPostTask = new FlushingPostTask(mBrushView, this);
                 finishScribble(currentPage, FAKE_MD5);
-                timer.schedule(flushingPostTask,400);
+                timer.schedule(flushingPostTask, 400);
                 pointList.add(new PointF(event.getX(), event.getY()));
                 break;
             default:
@@ -525,18 +525,18 @@ public class BrushManager {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 if (DEBUG) Log.d(TAG, "--->>>touchDown()");
-                touchDownTime =event.getEventTime();
-                if (touchUpTime !=0){
-                    if (touchDownTime - touchUpTime <400){
+                touchDownTime = event.getEventTime();
+                if (touchUpTime != 0) {
+                    if (touchDownTime - touchUpTime < 400) {
                         timer.cancel();
                         timer.purge();
-                        timer=new Timer();
+                        timer = new Timer();
                     }
                 }
                 EpdController.enterScribbleMode(mBrushView);
                 EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                         event.getSize(), event.getEventTime());
-                point=OnyxScribblePoint.fromEvent(event);
+                point = OnyxScribblePoint.fromEvent(event);
                 point.setSize(0);
                 startScribble(mBrushView.getContext(), currentPage, pageScale, 0, 0, point);
                 pointList.add(new PointF(event.getX(), event.getY()));
@@ -554,9 +554,9 @@ public class BrushManager {
                     EpdController.enablePost(mBrushView, 0);
                     EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                             event.getSize(), event.getEventTime());
-                    point=OnyxScribblePoint.fromEvent(event);
+                    point = OnyxScribblePoint.fromEvent(event);
                     point.setSize(0);
-                    startScribble(mBrushView.getContext(),currentPage,pageScale,0,0,point);
+                    startScribble(mBrushView.getContext(), currentPage, pageScale, 0, 0, point);
                     return;
                 } else {
                     int n = event.getHistorySize();
@@ -564,32 +564,32 @@ public class BrushManager {
                         dst = mapPoint(event.getX(), event.getY());
                         EpdController.addStrokePoint(mPaintWidth, dst[0], dst[1], event.getPressure(),
                                 event.getSize(), event.getEventTime());
-                        point=OnyxScribblePoint.fromHistoricalEvent(event, i);
+                        point = OnyxScribblePoint.fromHistoricalEvent(event, i);
                         point.setSize(0);
-                        addStrokePoints(pageScale,0,0,point,false);
+                        addStrokePoints(pageScale, 0, 0, point, false);
                     }
                     dst = mapPoint(event.getX(), event.getY());
                     EpdController.addStrokePoint(mPaintWidth, dst[0], dst[1], event.getPressure(),
                             event.getSize(), event.getEventTime());
-                    point=OnyxScribblePoint.fromEvent(event);
+                    point = OnyxScribblePoint.fromEvent(event);
                     point.setSize(0);
-                    addStrokePoints(pageScale,0,0,point,false);
+                    addStrokePoints(pageScale, 0, 0, point, false);
                 }
                 pointList.add(new PointF(event.getX(), event.getY()));
                 break;
             case MotionEvent.ACTION_UP:
                 if (DEBUG) Log.d(TAG, "--->>>touchUp()");
-                touchUpTime =event.getEventTime();
+                touchUpTime = event.getEventTime();
                 if (mEditType == BrushManager.BrushType.Scribble) {
                     if (updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
                         EpdController.finishStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
                                 event.getSize(), event.getEventTime());
                     }
                 }
-                FlushingPostTask flushingPostTask =new FlushingPostTask(mBrushView, this);
+                FlushingPostTask flushingPostTask = new FlushingPostTask(mBrushView, this);
                 finishScribble(currentPage, FAKE_MD5);
                 setEdit();
-                timer.schedule(flushingPostTask,400);
+                timer.schedule(flushingPostTask, 400);
                 pointList.add(new PointF(event.getX(), event.getY()));
                 break;
             default:

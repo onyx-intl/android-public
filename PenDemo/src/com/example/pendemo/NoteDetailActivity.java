@@ -30,14 +30,14 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
         setContentView(R.layout.activity_note_detail);
         initView();
         BrushManager.getInstance().setEdit();
-        ActionBar actionBar=getActionBar();
-        if (actionBar!=null){
+        ActionBar actionBar = getActionBar();
+        if (actionBar != null) {
             actionBar.setDisplayShowHomeEnabled(false);
             actionBar.setHomeButtonEnabled(true);
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
         BrushManager.getInstance().setStrokeColor(Color.BLACK);
-        BrushManager.getInstance().prepareScribbles(this,BrushManager.FAKE_MD5);
+        BrushManager.getInstance().prepareScribbles(this, BrushManager.FAKE_MD5);
 
         mBrushView.setPathStr("/sdcard/DCIM/snapshot_20140825_221143.png");
     }
@@ -54,7 +54,7 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
 
     @Override
     protected void onDestroy() {
-        BrushManager.getInstance().saveScribbles(this,BrushManager.FAKE_MD5);
+        BrushManager.getInstance().saveScribbles(this, BrushManager.FAKE_MD5);
         super.onDestroy();
         BrushManager.getInstance().releaseWakeLock(true);
     }
@@ -98,7 +98,7 @@ public class NoteDetailActivity extends Activity implements OnClickListener {
             case R.id.bt_save:
                 BrushManager.getInstance().saveNoteBookToStorage();
                 BrushManager.getInstance().resetPage(1, true);
-                BrushManager.getInstance().saveScribbles(this,BrushManager.FAKE_MD5);
+                BrushManager.getInstance().saveScribbles(this, BrushManager.FAKE_MD5);
                 break;
             case R.id.bt_quit:
                 BrushManager.getInstance().resetPage(1, false);

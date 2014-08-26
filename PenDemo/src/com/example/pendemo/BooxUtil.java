@@ -10,8 +10,8 @@ import android.view.View;
 
 public class BooxUtil {
 
-    public static int penDefaultWidth=3;
-    public static int eraseDefaultWidth=20;
+    public static int penDefaultWidth = 3;
+    public static int eraseDefaultWidth = 20;
 
     private static final String MODEL_WENSHI = "E970B";
 
