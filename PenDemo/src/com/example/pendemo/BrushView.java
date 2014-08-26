@@ -146,7 +146,7 @@ public class BrushView extends SurfaceView {
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        Log.d(TAG, "onSizeChanged: " + this.getWidth() + ", " + this.getHeight());
+        Log.d(TAG, "onSizeChanged: " + w + ", " + h);
         super.onSizeChanged(w, h, oldw, oldh);
         mWidth = w;
         mHeight = h;
