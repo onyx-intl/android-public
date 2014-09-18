@@ -2,7 +2,20 @@
 package com.example.pendemo;
 
 import android.content.Context;
-import android.graphics.*;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.PointF;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.Rect;
+import android.graphics.Xfermode;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.PowerManager;
+import android.view.MotionEvent;
 
 import com.onyx.android.sdk.data.cms.OnyxCmsCenter;
 import com.onyx.android.sdk.data.cms.OnyxScribble;
@@ -11,223 +24,363 @@ import com.onyx.android.sdk.device.DeviceInfo;
 import com.onyx.android.sdk.device.EpdController;
 import com.onyx.android.sdk.ui.data.ScribbleFactory;
 
-import android.os.Build;
-import android.os.Handler;
-import android.os.PowerManager;
-import android.text.TextUtils;
-import android.util.Log;
-import android.view.MotionEvent;
-import android.view.SurfaceView;
-import android.view.View;
-
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * Control brush line
- * 
+ *
  * @author shlf
  * @DATE 2014-07-11
  */
 public class BrushManager {
     private static final String TAG = "SHLF-BrushManager";
-    public static String FAKE_MD5="asdadadasdfrqgewgwe";
     private static final boolean DEBUG = true;
 
-    public static final int TYPE_DEFAULT = 0;// 默认状态
-    public static final int TYPE_EDIT = 1;// 编辑状态
-    public static final int TYPE_ERASE = 2;// 擦除状态
+    public static enum BrushType {View, Scribble, Erase}
 
-    private List<PointF> pointList = new ArrayList<PointF>();
-    private List<OnyxScribble> pendingScribble = new ArrayList<OnyxScribble>();
-    private HashMap<String, List<OnyxScribble>> scribbleMap = new HashMap<String, List<OnyxScribble>>();
-    private HashSet<String> scribblePositionsInDb = new HashSet<String>();
-    private OnyxScribble currentScribble = null;
-
-    private static BrushManager sInstance;
-    private boolean mEnableWakeLock;
-    private SurfaceView mMainView;
-
-    private Matrix mMapMatrix;
-
-    // brush res
-    private Path mPath;
-
-    private int mWidth;
-    private int mHeight;
-    private Bitmap mTempBitmap;
-
-    private Canvas mTmpCanvas;
-    private Paint mPaint;
-
-    public void setmPaintWidth(int mPaintWidth) {
-        this.mPaintWidth = mPaintWidth;
-    }
-
-    private int mPaintWidth;
-    private int mPaintColor;
-
-    private int mEditType = TYPE_DEFAULT;
+    private String mMD5 = null;
     private PowerManager.WakeLock mLock;
-    private boolean continuousWriting;
+    private Handler mHandler = new Handler();
 
-    // TODO(BinBin) 设置是否画线的标志
-    private boolean mWriteFlage = false;
+    private boolean mReady = false;
 
-    private Handler mHandler;
-    private NoteDetailActivity mActivity;
-    boolean scribbleInterruptedBecauseOutOfRegion=false;
-    public int currentPage = new Random().nextInt(1000);
-    private int pageCount = 1;
-    private float pageScale = 1.0f;
-    private Point pageTranslate = new Point();
-    Timer timer = new Timer();
-    private long uptime=0;
-    private long downtime=0;
+    private BrushView mBrushView;
+    private Bitmap mScribbleBitmap;
 
-    public BrushManager(SurfaceView mainView) {
-        super();
+    private BrushType mEditType = BrushType.View;
 
-        mMainView = mainView;
-        mMapMatrix = new Matrix();
-        sInstance = this;
+    private Paint mPaint = new Paint();
+    private Matrix mMapMatrix = new Matrix();
+    private int mStrokeWidth = BooxUtil.penDefaultWidth;
+    private int mPaintWidth;
 
-        mHandler = new Handler();
-    }
+    private PointF mLastTouchMovePoint = new PointF();
 
-    public static BrushManager getInstance() {
-        return sInstance;
-    }
+    private List<OnyxScribble> mPendingScribble = new ArrayList<OnyxScribble>();
+    private HashMap<String, List<OnyxScribble>> mScribbleMap = new HashMap<String, List<OnyxScribble>>();
+    private HashSet<String> mScribblePositionsInDb = new HashSet<String>();
+    private OnyxScribble mCurrentScribble = null;
 
-    // init brush
-    public void initBrush(int defaultPaintWidth, int defaultPaintColor, boolean enableWakeLock) {
-        mMainView.setDrawingCacheEnabled(true);
+    boolean mScribbleInterruptedBecauseOutOfRegion = false;
+    public int mCurrentPage = new Random().nextInt(1000);
+    private float mPageScale = 1.0f;
 
-        mPaint = new Paint();
-        mPaint.setAntiAlias(true);
-        mPaint.setDither(true);
-        mPaint.setStyle(Paint.Style.STROKE);
-        mPaint.setStrokeJoin(Paint.Join.ROUND);
-        mPaint.setStrokeCap(Paint.Cap.ROUND);
+    private long mLastTouchDownTime = 0;
+    private long mLastTouchUpTime = 0;
 
-        mPaintColor = defaultPaintColor;
-        mPaint.setColor(mPaintColor);
+    private Runnable mDelayedLeaveScribbleModeAndUpdateBrushView = new Runnable() {
+        @Override
+        public void run() {
+            if (mLastTouchUpTime > mLastTouchDownTime) {
+                EpdController.leaveScribbleMode(mBrushView);
+                updateBrushView();
+            }
+        }
+    };
 
-        mPath = new Path();
-
-        if (Build.MODEL.contains(RefreshManager.MODEL_WENSHI)) {
-            mPaintWidth = defaultPaintWidth;
-            mPaint.setStrokeWidth(mPaintWidth);
-
+    public BrushManager(BrushView brushView, int defaultStrokeWidth) {
+        mBrushView = brushView;
+        mBrushView.setDrawingCacheEnabled(true);
+        mStrokeWidth = defaultStrokeWidth;
+        if (BooxUtil.isE970B()) {
             mMapMatrix.postRotate(270);
             mMapMatrix.postTranslate(0, 825);
-
-            mEnableWakeLock = enableWakeLock;
-            if (mEnableWakeLock) {
-                mLock = DeviceInfo.currentDevice.newWakeLock(mMainView.getContext(),
-                        "Sark Scribble");
-                mLock.acquire();
-            }
-        } else {
-            mPaintWidth = defaultPaintWidth;
-            mPaint.setStrokeWidth(mPaintWidth);
         }
     }
 
-    public void releaseWakeLock(boolean leave) {
-        if (Build.MODEL.contains(RefreshManager.MODEL_WENSHI)) {
-            if (mEnableWakeLock && mLock != null) {
+    public void onSizeChanged(int w, int h) {
+        if (mReady) {
+            resetScribbleBitmap(w, h);
+        }
+    }
+
+    public void onDraw(final Canvas canvas) {
+        if (canvas != null && mScribbleBitmap != null && !mScribbleBitmap.isRecycled()) {
+            canvas.drawBitmap(mScribbleBitmap, 0, 0, null);
+        }
+    }
+
+    public boolean onTouchEvent(MotionEvent event) {
+        if (!BooxUtil.isE970B()) {
+            return false;
+        }
+        if (mEditType == BrushType.Scribble || mEditType == BrushType.Erase) {
+            applyFastScribble(event, mEditType == BrushType.Erase);
+            return true;
+        }
+        return false;
+    }
+
+    public void start(String md5, boolean holdWakeLock) {
+        if (holdWakeLock) {
+            mLock = DeviceInfo.currentDevice.newWakeLock(mBrushView.getContext(), TAG);
+            mLock.acquire();
+        }
+        mMD5 = md5;
+        loadScribbles(md5);
+        mReady = true;
+    }
+
+    /**
+     * save scribbles, and recycle scribble bitmap to avoid resource leaking
+     *
+     * @param releaseWakeLock if holdWakeLock is true in start(), then must release wake lock here
+     */
+    public void finish(boolean releaseWakeLock) {
+        if (!mReady) {
+            return;
+        }
+        mReady = false;
+        saveScribbles(mMD5);
+        if (mScribbleBitmap != null && !mScribbleBitmap.isRecycled()) {
+            mScribbleBitmap.recycle();
+            mScribbleBitmap = null;
+        }
+        if (BooxUtil.isE970B()) {
+            if (releaseWakeLock && mLock != null) {
                 mLock.release();
                 mLock = null;
             }
 
-            if (leave) DeviceInfo.currentDevice.leaveScribbleMode(mMainView);
+            EpdController.leaveScribbleMode(mBrushView);
         }
     }
 
-    public void leaveScribbleMode() {
-        if (Build.MODEL.contains(RefreshManager.MODEL_WENSHI)) {
-            DeviceInfo.currentDevice.leaveScribbleMode(mMainView);
+    /**
+     * after finish(), scribble bitmap will be no longer available
+     *
+     * @return
+     */
+    public Bitmap getScribbleBitmap() {
+        return mScribbleBitmap;
+    }
+
+    public void setEdit() {
+        mPaintWidth = mStrokeWidth;
+        EpdController.setStrokeStyle(Color.BLACK);
+        mEditType = BrushType.Scribble;
+    }
+
+    public void setEraser() {
+        mPaintWidth = BooxUtil.eraseDefaultWidth;
+        EpdController.setStrokeStyle(Color.WHITE);
+        mEditType = BrushType.Erase;
+    }
+
+    public void setStrokeWidth(int mPaintWidth) {
+        this.mStrokeWidth = mPaintWidth;
+        this.mPaintWidth = mPaintWidth;
+    }
+
+    public void setStrokeColor(int strokeColor) {
+        EpdController.setStrokeStyle(strokeColor);
+    }
+
+    /**
+     * clear tmpCanvas.
+     */
+    public void clear() {
+        Canvas canvas = mBrushView.getHolder().lockCanvas();
+        if (canvas == null) {
+            return;
         }
-    }
-
-    public Bitmap getBitmap() {
-        return mTempBitmap;
-    }
-
-    // TODO(BinBin)由路径获得图片
-    public void setBitmap(String path) {
-        if (!TextUtils.isEmpty(path) && (new File(path)).exists()) {
-            try {
-                if (null != BitmapFactory.decodeFile(path)) {
-                    mTempBitmap = BitmapFactory.decodeFile(path)
-                            .copy(Bitmap.Config.ARGB_4444, true);
-                }
-            } catch (Error OutOfMemoryError) {
-                System.gc();
-                System.gc();
-                if (null != BitmapFactory.decodeFile(path)) {
-                    mTempBitmap = BitmapFactory.decodeFile(path)
-                            .copy(Bitmap.Config.ARGB_4444, true);
-                }
-            }
-
-        }
-    }
-
-    // TODO(BinBin) 获取图片的是否被画
-    public boolean getWriteFlage() {
-        return mWriteFlage;
-    }
-
-    public void setWriteFlage(boolean writeFlage) {
-        mWriteFlage = writeFlage;
-    }
-
-    public void setPaintWidth(int width) {
-        mPaintWidth = width;
-    }
-
-    public void setPaintColor(int color) {
-        mPaintColor = color;
-    }
-
-    public void onSizeChanged(int w, int h) {
-        if (DEBUG) Log.d(TAG, "--->>>onSizeChanged()");
-
-        mWidth = w;
-        mHeight = h;
-
         try {
-            mTempBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_4444);
+            mBrushView.drawBackground(canvas);
+            if (mReady) {
+                deletePage(mBrushView.getContext());
+                resetScribbleBitmap(mBrushView.getWidth(), mBrushView.getHeight());;
+            }
+        } finally {
+            mBrushView.getHolder().unlockCanvasAndPost(canvas);
+        }
+    }
+
+    public boolean saveNoteBookToStorage(String path) {
+        final Bitmap bmp = Bitmap.createBitmap(mBrushView.getWidth(), mBrushView.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bmp);
+        canvas.drawColor(Color.WHITE);
+        canvas.drawBitmap(mScribbleBitmap, 0, 0, null);
+        try {
+            FileOutputStream is = new FileOutputStream(new File(path));
+            try {
+                bmp.compress(Bitmap.CompressFormat.PNG, 100, is);
+            } finally {
+                is.close();
+            }
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (bmp != null && !bmp.isRecycled()) {
+            bmp.recycle();
+        }
+        return false;
+    }
+
+    /**
+     * 保存笔记本
+     *
+     * @return
+     */
+    public boolean saveNoteBookToStorage() {
+        String path = Environment.getExternalStorageDirectory() + "/DCIM/test" + mCurrentPage + ".png";
+        return saveNoteBookToStorage(path);
+    }
+
+    private void resetScribbleBitmap(int w, int h) {
+        try {
+            Bitmap old = mScribbleBitmap;
+            mScribbleBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_4444);
+            if (old != null && !old.isRecycled()) {
+                old.recycle();
+            }
         } catch (Error OutOfMemoryError) {
             System.gc();
-            mTempBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_4444);
+            mScribbleBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_4444);
+        }
+    }
+
+    private void loadScribbles(String md5) {
+        mMD5 = md5;
+        mScribbleMap.clear();
+        mScribblePositionsInDb.clear();
+        if (mPendingScribble != null) {
+            mPendingScribble.clear();
+        }
+        mCurrentScribble = null;
+
+        OnyxCmsCenter.getScribblePositions(mBrushView.getContext(), mBrushView.getContext().getPackageName(), md5, mScribblePositionsInDb);
+    }
+
+    private void saveScribbles(String md5) {
+        for (OnyxScribble scribble : mPendingScribble) {
+            scribble.setMD5(md5);
+            OnyxCmsCenter.insertScribble(mBrushView.getContext(), scribble);
+        }
+        mPendingScribble.clear();
+    }
+
+    private void startScribble(Context context, int page, double scale, int px, int py, OnyxScribblePoint screenPoint) {
+        mCurrentScribble = ScribbleFactory.singleton().newScribble(context, page, scale);
+        mCurrentScribble.allocatePoints(512);
+        OnyxScribblePoint normalizedPoint = new OnyxScribblePoint((float) ((screenPoint.getX() - px) / scale),
+                (float) ((screenPoint.getY() - py) / scale),
+                screenPoint.getPressure(), screenPoint.getSize(), screenPoint.getEventTime());
+        mCurrentScribble.getPoints().add(normalizedPoint);
+    }
+
+    private void addStrokePoints(double scale, int px, int py, OnyxScribblePoint screenPoint, boolean touchDown) {
+        OnyxScribblePoint normalizedPoint = new OnyxScribblePoint((float) ((screenPoint.getX() - px) / scale),
+                (float) ((screenPoint.getY() - py) / scale),
+                screenPoint.getPressure(), screenPoint.getSize(), screenPoint.getEventTime());
+        mCurrentScribble.getPoints().add(normalizedPoint);
+    }
+
+    private void finishScribble(int page, final String md5) {
+        String key = pageKey(page);
+        List<OnyxScribble> list = mScribbleMap.get(key);
+        if (list == null) {
+            list = new ArrayList<OnyxScribble>();
+            mScribbleMap.put(key, list);
+        }
+        list.add(mCurrentScribble);
+        mCurrentScribble.setMD5(md5);
+        mCurrentScribble.setPosition(key);
+        if (!mPendingScribble.contains(mCurrentScribble)) {
+            mPendingScribble.add(mCurrentScribble);
+        }
+        mCurrentScribble = null;
+    }
+
+    private final String pageKey(int page) {
+        return String.valueOf(page);
+    }
+
+    private ArrayList<OnyxScribble> loadScribblesOfPosition(Context context, String md5, String position) {
+        ArrayList<OnyxScribble> scribbles = new ArrayList<OnyxScribble>();
+        if (OnyxCmsCenter.getScribbles(context, context.getPackageName(),
+                md5, position, scribbles)) {
+            return scribbles;
+        }
+        return null;
+    }
+
+    private void paintScribbles(Canvas canvas, Paint paint) {
+        List<OnyxScribble> sendToCanvasScribble = new ArrayList<OnyxScribble>();
+        sendToCanvasScribble.addAll(mPendingScribble);
+        for (OnyxScribble scribble : sendToCanvasScribble) {
+            ArrayList<OnyxScribblePoint> points = scribble.getPoints();
+            for (int i = 0; i < points.size() - 1; i++) {
+                if (isErasePoint(points.get(i))) {
+                    paint.setStrokeWidth(BooxUtil.eraseDefaultWidth);
+                    paint.setColor(Color.WHITE);
+                    paint.setAlpha(0);
+                    Xfermode xFermode = new PorterDuffXfermode(PorterDuff.Mode.DST_IN);
+                    paint.setXfermode(xFermode);
+                    canvas.drawLine(points.get(i).getX(), points.get(i).getY(),
+                            points.get(i + 1).getX(), points.get(i + 1).getY(), paint);
+                    paint.setStrokeWidth(BooxUtil.penDefaultWidth);
+                    paint.setColor(Color.BLACK);
+                    paint.setAlpha(255);
+                    paint.setXfermode(null);
+                } else {
+                    paint.setStrokeWidth(points.get(i).getSize());
+                    paint.setColor(Color.BLACK);
+                    canvas.drawLine(points.get(i).getX(), points.get(i).getY(),
+                            points.get(i + 1).getX(), points.get(i + 1).getY(), paint);
+                }
+            }
+        }
+    }
+
+    private void updateBrushView() {
+        Canvas canvas = mBrushView.getHolder().lockCanvas();
+        if (canvas == null) {
+            return;
         }
 
-        if (mTempBitmap != null) {
-            mTmpCanvas = new Canvas(mTempBitmap);
+        try {
+            mBrushView.drawBackground(canvas);
+            if (mReady && mScribbleBitmap != null && !mScribbleBitmap.isRecycled()) {
+                Canvas scribble_canvas = new Canvas(mScribbleBitmap);
+                paintScribbles(scribble_canvas, mPaint);
+                canvas.drawBitmap(mScribbleBitmap, 0, 0, null);
+            }
+        } finally {
+            mBrushView.getHolder().unlockCanvasAndPost(canvas);
+        }
+    }
+
+    private void deletePage(Context context) {
+        if (mPendingScribble.isEmpty()) {
+            List<OnyxScribble> list = loadScribblesOfPosition(context, mMD5, String.valueOf(mCurrentPage));
+            for (OnyxScribble s : list) {
+                OnyxCmsCenter.deleteScribble(context, s);
+            }
         } else {
-            Log.e(TAG, "on Sizechangeed Create bitmap error");
+            mPendingScribble.clear();
         }
 
     }
 
-    public void onDraw(final Canvas canvas) {
-        if (canvas != null && mTempBitmap != null) canvas.drawBitmap(mTempBitmap, 0, 0, null);
+    private Rect updateSurfaceViewScribbleRegion() {
+        int top = mBrushView.getTop();
+        int bottom = mBrushView.getBottom();
+        return new Rect(mBrushView.getLeft(), top, mBrushView.getRight(), bottom);
     }
 
-    public float[] mapPoint(float x, float y) {
+    private float[] mapPoint(float x, float y) {
         int viewLocation[] = {
                 0, 0
         };
-        mMainView.getLocationOnScreen(viewLocation);
+        mBrushView.getLocationOnScreen(viewLocation);
         float screenPoints[] = {
                 viewLocation[0] + x, viewLocation[1] + y
         };
@@ -238,336 +391,105 @@ public class BrushManager {
         return dst;
     }
 
-    public void scribbleProcess(Context context,MotionEvent event) {
-        if (Build.MODEL.contains(RefreshManager.MODEL_WENSHI)) {
-            float dst[] = mapPoint(event.getX(), event.getY());
-            OnyxScribblePoint point;
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    if (DEBUG) Log.d(TAG, "--->>>touchDown()");
-                    downtime=event.getEventTime();
-                    if (uptime!=0){
-                        if (downtime-uptime<400){
-                            timer.cancel();
-                            timer.purge();
-                            timer=new Timer();
-                        }
-                    }
-                    point=OnyxScribblePoint.fromEvent(event);
-                    EpdController.enterScribbleMode(mMainView);
-                    point.setSize(EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
-                            event.getSize(), event.getEventTime()));
-                    startScribble(mActivity,currentPage,pageScale,0,0,point);
-                    pointList.add(new PointF(event.getX(), event.getY()));
-                    break;
-                case MotionEvent.ACTION_MOVE:
-                    mWriteFlage = true;
-                    //Todo use rawX to fix right boundary still drawing problem.
-                    if (!mActivity.updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
-                        scribbleInterruptedBecauseOutOfRegion = true;
-                        return;
-                    }
-                    if (scribbleInterruptedBecauseOutOfRegion) {
-                        scribbleInterruptedBecauseOutOfRegion = false;
-                        point=OnyxScribblePoint.fromEvent(event);
-                        EpdController.finishStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
-                                event.getSize(), event.getEventTime());
-                        EpdController.enablePost(mMainView, 0);
-                        point.setSize(EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
-                                event.getSize(), event.getEventTime()));
-                        startScribble(mActivity,currentPage,pageScale,0,0,point);
-                        return;
-                    } else {
-                        int n = event.getHistorySize();
-                        for (int i = 0; i < n; i++) {
-                            point=OnyxScribblePoint.fromHistoricalEvent(event,i);
-                            dst = mapPoint(event.getHistoricalX(i), event.getHistoricalY(i));
-                            point.setSize(EpdController.addStrokePoint(mPaintWidth, dst[0], dst[1], event.getPressure(),
-                                    event.getSize(), event.getEventTime()));
-                            addStrokePoints(pageScale,0,0,point,false);
-                        }
-                        dst = mapPoint(event.getX(), event.getY());
-                        point=OnyxScribblePoint.fromEvent(event);
-                        point.setSize(EpdController.addStrokePoint(mPaintWidth, dst[0], dst[1], event.getPressure(),
-                                event.getSize(), event.getEventTime()));
-                        addStrokePoints(pageScale,0,0,point,false);
-                    }
-                    pointList.add(new PointF(event.getX(), event.getY()));
-                    break;
-                case MotionEvent.ACTION_UP:
-                    if (DEBUG) Log.d(TAG, "--->>>touchUp()");
-                    uptime=event.getEventTime();
-                    if (mEditType == BrushManager.TYPE_EDIT) {
-                        if (mActivity.updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
-                            EpdController.finishStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
-                                    event.getSize(), event.getEventTime());
-                        }
-                    }
-                    FlushingPostTask flushingPostTask =new FlushingPostTask(context,mMainView);
-                    finishScribble(currentPage, FAKE_MD5);
-                    saveScribbles(context, FAKE_MD5);
-                    timer.schedule(flushingPostTask,400);
-                    pointList.add(new PointF(event.getX(), event.getY()));
-                    break;
-                default:
-                    break;
-            }
+    private void setErasePointSize(OnyxScribblePoint point) {
+        point.setSize(-1);
+    }
+
+    private boolean isErasePoint(OnyxScribblePoint point) {
+        return point.getSize() < 0;
+    }
+
+    private void updatePointSize(OnyxScribblePoint point, float size, boolean erasing) {
+        if (erasing) {
+            setErasePointSize(point);
+        } else {
+            point.setSize(size);
         }
     }
 
-
-    public void eraseProcess(Context context,MotionEvent event) {
-        if (Build.MODEL.contains(RefreshManager.MODEL_WENSHI)) {
-            float dst[] = mapPoint(event.getX(), event.getY());
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    if (DEBUG) Log.d(TAG, "--->>>touchDown()");
-                    downtime=event.getEventTime();
-                    if (uptime!=0){
-                        if (downtime-uptime<400){
-                            timer.cancel();
-                            timer.purge();
-                            timer=new Timer();
-                        }
-                    }
-                    EpdController.enterScribbleMode(mMainView);
-                    EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
-                            event.getSize(), event.getEventTime());
-                    startScribble(mActivity,currentPage,pageScale,0,0,OnyxScribblePoint.fromEvent(event));
-                    pointList.add(new PointF(event.getX(), event.getY()));
-                    break;
-                case MotionEvent.ACTION_MOVE:
-                    mWriteFlage = true;
-                    //Todo: use rawX to fix right boundary still drawing problem.
-                    if (!mActivity.updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
-                        scribbleInterruptedBecauseOutOfRegion = true;
-                        return;
-                    }
-                    if (scribbleInterruptedBecauseOutOfRegion) {
-                        scribbleInterruptedBecauseOutOfRegion = false;
-                        EpdController.finishStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
-                                event.getSize(), event.getEventTime());
-                        EpdController.enablePost(mMainView, 0);
-                        EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
-                                event.getSize(), event.getEventTime());
-                        startScribble(mActivity,currentPage,pageScale,0,0,OnyxScribblePoint.fromEvent(event));
-                        return;
-                    } else {
-                        int n = event.getHistorySize();
-                        for (int i = 0; i < n; i++) {
-                            dst = mapPoint(event.getX(), event.getY());
-                            EpdController.addStrokePoint(mPaintWidth, dst[0], dst[1], event.getPressure(),
-                                    event.getSize(), event.getEventTime());
-                            addStrokePoints(pageScale,0,0,OnyxScribblePoint.fromHistoricalEvent(event,i),false);
-                        }
-                        dst = mapPoint(event.getX(), event.getY());
-                        EpdController.addStrokePoint(mPaintWidth, dst[0], dst[1], event.getPressure(),
-                                event.getSize(), event.getEventTime());
-                        addStrokePoints(pageScale,0,0,OnyxScribblePoint.fromEvent(event),false);
-                    }
-                    pointList.add(new PointF(event.getX(), event.getY()));
-                    break;
-                case MotionEvent.ACTION_UP:
-                    if (DEBUG) Log.d(TAG, "--->>>touchUp()");
-                    uptime=event.getEventTime();
-                    if (mEditType == BrushManager.TYPE_EDIT) {
-                        if (mActivity.updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY())) {
-                            EpdController.finishStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
-                                    event.getSize(), event.getEventTime());
-                        }
-                    }
-                    FlushingPostTask flushingPostTask =new FlushingPostTask(context,mMainView);
-                    finishScribble(currentPage, FAKE_MD5);
-                    saveScribbles(context, FAKE_MD5);
-                    setEdit();
-                    timer.schedule(flushingPostTask,400);
-                    pointList.add(new PointF(event.getX(), event.getY()));
-                    break;
-                default:
-                    break;
-            }
-        }
+    private boolean isMotionEventInsideView(MotionEvent event) {
+        return updateSurfaceViewScribbleRegion().contains((int) event.getRawX(), (int) event.getY());
     }
 
+    private void applyFastScribble(MotionEvent event, boolean erasing) {
+        float dst[] = mapPoint(event.getX(), event.getY());
 
-    private void redrawPage() {
-//        Rect region = renderer.getDirtyRegion();
-//        Canvas canvas = .lockCanvas(region);
-//        renderer.drawDirtyStroke(canvas, rendererPainter);
-//        holder.unlockCanvasAndPost(canvas);
-    }
+        float size;
+        OnyxScribblePoint point;
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                mLastTouchDownTime = event.getEventTime();
+                EpdController.enterScribbleMode(mBrushView);
+                mHandler.removeCallbacks(mDelayedLeaveScribbleModeAndUpdateBrushView);
 
-    public void resetPage(final int type, boolean invalidate) {
-        if (Build.MODEL.contains(RefreshManager.MODEL_WENSHI)) {
-            mHandler.postDelayed(new Runnable() {
-                public void run() {
-                    EpdController.enablePost(mMainView, type);
+                point = OnyxScribblePoint.fromEvent(event);
+                size = EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
+                        event.getSize(), event.getEventTime());
+                updatePointSize(point, size, erasing);
+                startScribble(mBrushView.getContext(), mCurrentPage, mPageScale, 0, 0, point);
+                break;
+            case MotionEvent.ACTION_MOVE:
+                // Todo use rawX to fix right boundary still drawing problem.
+                if (!isMotionEventInsideView(event)) {
+                    if (!mScribbleInterruptedBecauseOutOfRegion) {
+                        float last[] = mapPoint(mLastTouchMovePoint.x, mLastTouchMovePoint.y);
+                        EpdController.finishStroke(mPaintWidth, last[0], last[1], event.getPressure(),
+                                event.getSize(), event.getEventTime());
+                        finishScribble(mCurrentPage, mMD5);
+                    }
+                    mScribbleInterruptedBecauseOutOfRegion = true;
+                    return;
+                } else {
+                    mLastTouchMovePoint.set(event.getX(), event.getY());
                 }
-            }, ((0 == type) ? 2000 : 0));
-        }
-        if (invalidate) {
-            if (null != mMainView) mMainView.invalidate();
-        }
-    }
 
-    public void setEdit() {
-        if (DEBUG) Log.d(TAG, "--->>>setEdit()");
+                if (mScribbleInterruptedBecauseOutOfRegion) {
+                    mScribbleInterruptedBecauseOutOfRegion = false;
+                    point = OnyxScribblePoint.fromEvent(event);
+                    size = EpdController.startStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
+                            event.getSize(), event.getEventTime());
+                    updatePointSize(point, size, erasing);
+                    startScribble(mBrushView.getContext(), mCurrentPage, mPageScale, 0, 0, point);
+                    return;
+                } else {
+                    int n = event.getHistorySize();
+                    for (int i = 0; i < n; i++) {
+                        point = OnyxScribblePoint.fromHistoricalEvent(event, i);
+                        dst = mapPoint(event.getHistoricalX(i), event.getHistoricalY(i));
+                        size = EpdController.addStrokePoint(mPaintWidth, dst[0], dst[1], event.getPressure(),
+                                event.getSize(), event.getEventTime());
+                        updatePointSize(point, size, erasing);
+                        addStrokePoints(mPageScale, 0, 0, point, false);
+                    }
+                    dst = mapPoint(event.getX(), event.getY());
+                    point = OnyxScribblePoint.fromEvent(event);
+                    size = EpdController.addStrokePoint(mPaintWidth, dst[0], dst[1], event.getPressure(),
+                            event.getSize(), event.getEventTime());
+                    updatePointSize(point, size, erasing);
+                    addStrokePoints(mPageScale, 0, 0, point, false);
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+                mLastTouchUpTime = event.getEventTime();
+                if (erasing) {
+                    // we want to see the result of erasing as soon as possible
+                    mHandler.post(mDelayedLeaveScribbleModeAndUpdateBrushView);
+                } else {
+                    mHandler.postDelayed(mDelayedLeaveScribbleModeAndUpdateBrushView, 500);
+                }
 
-        mEditType = TYPE_EDIT;
-
-        mPaint.setColor(mPaintColor);
-        mPaint.setStrokeWidth(mPaintWidth);
-
-        mPaint.setXfermode(null);
-        mPaint.setAlpha(255);
-    }
-
-    public void setEraser() {
-        if (DEBUG) Log.d(TAG, "--->>>setEraser()");
-
-        mEditType = TYPE_ERASE;
-        mPaint.setAlpha(255);
-        mPaint.setStrokeWidth(mPaintWidth);
-    }
-
-    /**
-     * clear tmpCanvas.
-     */
-    public void clear() {
-        if (DEBUG) Log.d(TAG, "--->>>clear()");
-        EpdController.enablePost(mMainView, 1);
-        try {
-            mTempBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_4444);
-        } catch (Error OutOfMemoryError) {
-            System.gc();
-            mTempBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_4444);
-        }
-        mTmpCanvas = new Canvas(mTempBitmap);
-        RefreshManager.invalidateGC4(mMainView, false);
-    }
-
-    public void handWriting() {
-        Canvas canvas = new Canvas(mTempBitmap);
-        canvas.drawPath(mPath, mPaint);
-    }
-
-    public void setHostActivity(NoteDetailActivity activity) {
-        this.mActivity = activity;
-    }
-
-    public void saveScribbles(Context context, String md5) {
-        for (OnyxScribble scribble : pendingScribble) {
-            scribble.setMD5(md5);
-            OnyxCmsCenter.insertScribble(context, scribble);
-        }
-        pendingScribble.clear();
-    }
-
-    public void startScribble(Context context, int page, double scale, int px, int py, OnyxScribblePoint screenPoint) {
-        currentScribble = ScribbleFactory.singleton().newScribble(context, page, scale);
-        currentScribble.allocatePoints(512);
-        OnyxScribblePoint normalizedPoint = new OnyxScribblePoint((float) ((screenPoint.getX() - px) / scale),
-                (float) ((screenPoint.getY() - py) / scale),
-                screenPoint.getPressure(), screenPoint.getSize(), screenPoint.getEventTime());
-        currentScribble.getPoints().add(normalizedPoint);
-    }
-
-    public void addStrokePoints(double scale, int px, int py, OnyxScribblePoint screenPoint,boolean touchDown) {
-        OnyxScribblePoint normalizedPoint = new OnyxScribblePoint((float) ((screenPoint.getX() - px) / scale),
-                (float) ((screenPoint.getY() - py) / scale),
-                screenPoint.getPressure(), screenPoint.getSize(), screenPoint.getEventTime());
-        currentScribble.getPoints().add(normalizedPoint);
-    }
-
-    public void finishScribble(int page, final String md5) {
-        String key = pageKey(page);
-        List<OnyxScribble> list = scribbleMap.get(key);
-        if (list == null) {
-            list = new ArrayList<OnyxScribble>();
-            scribbleMap.put(key, list);
-        }
-        list.add(currentScribble);
-        currentScribble.setMD5(md5);
-        currentScribble.setPosition(key);
-        if (!pendingScribble.contains(currentScribble)) {
-            pendingScribble.add(currentScribble);
-        }
-        currentScribble = null;
-    }
-
-    private final String pageKey(int page) {
-        return String.valueOf(page);
-    }
-
-    public void prepareScribbles(Context context, String md5) {
-        scribbleMap.clear();
-        scribblePositionsInDb.clear();
-        if (pendingScribble != null) {
-            pendingScribble.clear();
-        }
-        currentScribble = null;
-
-        OnyxCmsCenter.getScribblePositions(context, context.getPackageName(), md5, scribblePositionsInDb);
-    }
-
-    public ArrayList<OnyxScribble> loadScribblesOfPosition(Context context, String md5, String position) {
-        ArrayList<OnyxScribble> scribbles = new ArrayList<OnyxScribble>();
-        if (OnyxCmsCenter.getScribbles(context, context.getPackageName(),
-                md5, position, scribbles)) {
-            return scribbles;
-        }
-        return null;
-    }
-
-    public void paintScribbles(Context context,Canvas canvas,Paint paint) {
-        ArrayList<OnyxScribble> scribbleList=loadScribblesOfPosition(context,
-                BrushManager.FAKE_MD5,
-                String.valueOf(BrushManager.getInstance().currentPage));
-        for (OnyxScribble scribble :scribbleList){
-            ArrayList<OnyxScribblePoint> tempPoints=scribble.getPoints();
-            for (int i = 0; i < tempPoints.size() - 1; i++) {
-                if (tempPoints.get(i).getSize()==0){
-                    paint.setStrokeWidth(20);
-                    paint.setColor(Color.WHITE);
-                }else {
-                    paint.setStrokeWidth(tempPoints.get(i).getSize());
-                    paint.setColor(Color.BLACK);
-                }canvas.drawLine(tempPoints.get(i).getX(), tempPoints.get(i).getY(),
-                        tempPoints.get(i + 1).getX(), tempPoints.get(i + 1).getY(), paint);
-            }
+                if (!mScribbleInterruptedBecauseOutOfRegion) {
+                    EpdController.finishStroke(mPaintWidth, dst[0], dst[1], event.getPressure(),
+                            event.getSize(), event.getEventTime());
+                    finishScribble(mCurrentPage, mMD5);
+                }
+                if (erasing) {
+                    setEdit();
+                }
+                break;
+            default:
+                break;
         }
     }
 
-    private void flushPendingPost(Context context){
-        Paint paint = new Paint();
-        paint.setColor(Color.BLACK);
-        paint.setStrokeWidth(3);
-        Canvas tempCanvas=mMainView.getHolder().lockCanvas();
-        tempCanvas.drawColor(Color.WHITE);
-        BrushManager.getInstance().paintScribbles(context,tempCanvas,paint);
-        mMainView.getHolder().unlockCanvasAndPost(tempCanvas);
-    }
-
-
-    public class FlushingPostTask extends TimerTask {
-        Context mContext;
-        View mView;
-
-        public FlushingPostTask(Context context, View view) {
-            mContext = context;
-            mView = view;
-        }
-
-        public void run() {
-            EpdController.leaveScribbleMode(mView);
-            flushPendingPost(mContext);
-        }
-    }
-
-    public void deletePage(Context context) {
-            List<OnyxScribble> list = loadScribblesOfPosition(context, FAKE_MD5, String.valueOf(BrushManager.getInstance().currentPage));
-            for (OnyxScribble s : list) {
-                OnyxCmsCenter.deleteScribble(context, s);
-            }
-    }
 }

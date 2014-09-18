@@ -9,11 +9,10 @@ import android.os.Build;
 import android.view.View;
 
 public class RefreshManager {
-    public static final String MODEL_WENSHI = "E970B";
 
     // for activity refresh
     public static void onCreate(Activity activity) {
-        if (Build.MODEL.contains(MODEL_WENSHI)) {
+        if (BooxUtil.isE970B()) {
             // EpdController.invalidate(activity.getWindow().getDecorView(),
             // UpdateMode.GC);
             EpdController.invalidate(activity.getWindow().getDecorView(), UpdateMode.GU);
@@ -22,13 +21,13 @@ public class RefreshManager {
 
     // for activity refresh
     public static void onPostResume(Activity activity) {
-        if (Build.MODEL.contains(MODEL_WENSHI)) {
+        if (BooxUtil.isE970B()) {
             BooxUtil.activityGCUpdate(activity, BooxUtil.defaultGCDelay());
         }
     }
 
     public static void invalidateGC4(View view, boolean isSet) {
-        if (Build.MODEL.contains(MODEL_WENSHI)) {
+        if (BooxUtil.isE970B()) {
             if (isSet) {
                 EpdController.setViewDefaultUpdateMode(view, UpdateMode.GC4);
             } else {
@@ -40,7 +39,7 @@ public class RefreshManager {
     }
 
     public static void invalidateGUFAST(View view, boolean isSet) {
-        if (Build.MODEL.contains(MODEL_WENSHI)) {
+        if (BooxUtil.isE970B()) {
             if (isSet) {
                 EpdController.setViewDefaultUpdateMode(view, UpdateMode.GU_FAST);
             } else {
@@ -52,7 +51,7 @@ public class RefreshManager {
     }
 
     public static void invalidateGC(View view, boolean isSet) {
-        if (Build.MODEL.contains(MODEL_WENSHI)) {
+        if (BooxUtil.isE970B()) {
             if (isSet) {
                 // EpdController.setViewDefaultUpdateMode(view, UpdateMode.GC);
                 EpdController.setViewDefaultUpdateMode(view, UpdateMode.GU);
@@ -66,7 +65,7 @@ public class RefreshManager {
     }
 
     public static void postInvalidateGC4(View view) {
-        if (Build.MODEL.contains(MODEL_WENSHI)) {
+        if (BooxUtil.isE970B()) {
             EpdController.postInvalidate(view, UpdateMode.GC4);
         } else {
             view.postInvalidate();
