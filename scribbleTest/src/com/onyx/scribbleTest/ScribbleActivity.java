@@ -80,6 +80,7 @@ public class ScribbleActivity extends Activity {
             case (MotionEvent.ACTION_DOWN):
                 float dst[] = paintView.mapPoint(e.getX(), e.getY());
                 EpdController.startStroke(baseWidth, dst[0], dst[1], e.getPressure(), e.getSize(), e.getEventTime());
+                Log.i(TAG, "Pressure: " + e.getPressure());
                 return true;
             case (MotionEvent.ACTION_CANCEL):
             case (MotionEvent.ACTION_OUTSIDE):
@@ -87,12 +88,14 @@ public class ScribbleActivity extends Activity {
             case MotionEvent.ACTION_UP:
                 dst = paintView.mapPoint(e.getX(), e.getY());
                 EpdController.finishStroke(baseWidth, dst[0], dst[1], e.getPressure(), e.getSize(), e.getEventTime());
+                Log.i(TAG, "Pressure: " + e.getPressure());
                 return true;
             case MotionEvent.ACTION_MOVE:
                 int n = e.getHistorySize();
                 for (int i = 0; i < n; i++) {
                     dst = paintView.mapPoint(e.getHistoricalX(i), e.getHistoricalY(i));
-                    EpdController.addStrokePoint(baseWidth,  dst[0], dst[1], e.getPressure(), e.getSize(), e.getEventTime());
+                    EpdController.addStrokePoint(baseWidth,  dst[0], dst[1],  e.getHistoricalPressure(i), e.getHistoricalSize(i), e.getEventTime());
+                    Log.i(TAG, "Pressure: " + e.getHistoricalPressure(i));
                 }
                 dst = paintView.mapPoint(e.getX(), e.getY());
                 EpdController.addStrokePoint(baseWidth, dst[0], dst[1], e.getPressure(), e.getSize(), e.getEventTime());
